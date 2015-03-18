@@ -8,5 +8,19 @@ type Token struct {
 	Pos           int
 	Endpos        int
 	Nlb           bool
+	Attributes    []string
 	CommentsBefor []*Token //comments
 }
+
+const (
+	TokenOperator = iota
+	TokenKeyword
+	TokenPunc
+	TokenNumber
+	TokenString
+	TokenLineComment
+	TokenMultComment
+	TokenRegexp
+	TokenName
+	TokenAtom
+)

@@ -6,7 +6,8 @@ import (
 
 func Test(text string) {
 	t := generatorTokenizer(text)
-	t.find_str("*/")
-	ch := t.peek()
-	fmt.Println("number:", ch, "\nstring:", string(ch), "\nposition:", t.pos)
+	for !t.eof() {
+		tok := t.next_token("")
+		fmt.Println(tok)
+	}
 }
