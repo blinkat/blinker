@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/blinkat/blinks/strike/parser/scanner"
+	"github.com/blinkat/blinks/strike/parser"
 	"io/ioutil"
 )
 
@@ -17,5 +17,5 @@ func main() {
 	}
 
 	text := string(buffer)
-	scanner.Test(text)
+	parser.Test(text)
 }

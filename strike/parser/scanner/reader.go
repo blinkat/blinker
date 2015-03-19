@@ -199,7 +199,7 @@ func read_name(t *tokenizer) string {
 				backslash = true
 				t.next(false)
 			} else if adapter.IsIdentifierChar(ch) {
-				name = append(name, ch)
+				name = append(name, t.next(false))
 			} else {
 				break
 			}

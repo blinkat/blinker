@@ -24,3 +24,11 @@ const (
 	TokenName
 	TokenAtom
 )
+
+func IsAtomStartToken(tok *Token) bool {
+	switch tok.Type {
+	case TokenAtom, TokenNumber, TokenString, TokenName, TokenRegexp:
+		return true
+	}
+	return false
+}

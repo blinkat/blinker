@@ -19,22 +19,12 @@ type tokenizer struct {
 	comments_befor []*Token
 }
 
-//----------[ ctor ]------------
-func generatorTokenizer(text string) *tokenizer {
-	t := &tokenizer{}
-	t.text = []rune(adapter.ClearWhite(text))
-	//t.text = []rune(text)
-	t.pos = 0
-	t.col = 0
-	t.line = 0
-	t.tokcol = 0
-	t.tokline = 0
-	t.tokpos = 0
-	t.newline_befor = false
-	t.regex_allowed = false
-	t.comments_befor = make([]*Token, 0)
-	t.length = len(t.text)
-	return t
+//------------[ interface ]--------------
+func (t *tokenizer) Next(regexp string) *Token {
+	return t.next_token(regexp)
+}
+func (t *tokenizer) Eof() bool {
+	return t.eof()
 }
 
 func (t *tokenizer) peek() rune {
@@ -61,7 +51,7 @@ func (t *tokenizer) next(in_string bool) rune {
 }
 
 func (t *tokenizer) eof() bool {
-	return t.pos < t.length && t.pos > 0
+	return t.pos < t.length && t.pos >= 0
 }
 
 func (t *tokenizer) find_str(what string) int {
