@@ -313,7 +313,7 @@ func read_word(t *tokenizer) *Token {
 	if !adapter.Keywords(word) {
 		return t.token(TokenName, word, false)
 	} else if adapter.Operator(word) {
-		return t.token(TokenKeyword, word, false)
+		return t.token(TokenOperator, word, false)
 	} else if adapter.KeywordsAtom(word) {
 		return t.token(TokenAtom, word, false)
 	} else {

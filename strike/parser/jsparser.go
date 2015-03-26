@@ -52,7 +52,6 @@ func (j *jsparser) next() *scanner.Token {
 		j.token = j.input.Next("")
 	}
 	j.in_directives = j.in_directives && (j.token.Type == scanner.TokenString || j.is_token(scanner.TokenPunc, ";"))
-	fmt.Println("message :", j.count, j.token)
 	j.count += 1
 	return j.token
 }
@@ -354,6 +353,7 @@ func (j *jsparser) expr_op(left *Ast, min_prec int, no_in bool) *Ast {
 	if op != "" && op == "in" && no_in {
 		op = ""
 	}
+
 	prec := adapter.Precedence(op)
 	if prec != -1 && prec > min_prec {
 		j.next()
@@ -664,7 +664,7 @@ func (j *jsparser) try_() *Ast {
 	if j.is_token(scanner.TokenKeyword, "catch") {
 		j.next()
 		j.expect("(")
-		if j.is_token(scanner.TokenName, "") {
+		if !j.is_token(scanner.TokenName, "") {
 			j.throw("Name expected")
 		}
 		name := j.token.Value

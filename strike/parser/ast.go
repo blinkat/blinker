@@ -52,12 +52,18 @@ type Ast struct {
 	Type       int
 	Name       string
 	Attributes []*Ast
+	AtTop      bool
+	Splice     bool
+	AtValue    *Ast
 }
 
 func ast(t int, name string, attr ...*Ast) *Ast {
 	a := &Ast{}
 	a.Type = t
 	a.Name = name
+	a.AtTop = false
+	a.Splice = false
+	a.AtValue = nil
 	a.Attributes = append(make([]*Ast, 0), attr...)
 
 	return a
@@ -79,4 +85,8 @@ func TokenTypeToAstType(t int) int {
 	default:
 		return Ast_None
 	}
+}
+
+func NewAst(t int, name string, attr ...*Ast) *Ast {
+	return ast(t, name, attr...)
 }
