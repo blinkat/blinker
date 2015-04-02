@@ -7,9 +7,11 @@ import (
 )
 
 var jquery string
+var test string
 
 func main() {
 	jquery = "./jquery-1.11.2.js"
+	test = "./test.js"
 
 	buffer, err := ioutil.ReadFile(jquery)
 	if err != nil {

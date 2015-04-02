@@ -20,10 +20,10 @@ type jsparser struct {
 	count int
 }
 
-func (j *jsparser) Parse() *Ast {
-	ret := ast(Ast_TopLevel, "")
+func (j *jsparser) Parse() IAst {
+	ret := NewToplevel()
 	for j.input.Eof() {
-		ret.Attributes = append(ret.Attributes, j.statement())
+		ret.Statements = append(ret.Statements, j.statement())
 	}
 	return ret
 }
@@ -80,15 +80,15 @@ func (j *jsparser) can_insert_semicolon() bool {
 	return j.token.Nlb || !j.input.Eof() || j.is_token(scanner.TokenPunc, "}")
 }
 
-func (j *jsparser) labeled_statement(label string) *Ast {
+func (j *jsparser) labeled_statement(label string) IAst {
 	j.labels = append(j.labels, label)
 	stat := j.statement()
 	j.labels = j.labels[:len(j.labels)-1]
-	return ast(Ast_Label, label, stat)
+	return NewLabel(j.labels, stat)
 }
 
 //-------------[ statement ]---------------
-func (j *jsparser) statement() *Ast {
+func (j *jsparser) statement() IAst {
 	if j.is_token(scanner.TokenOperator, "/") || j.is_token(scanner.TokenOperator, "/=") {
 		j.peeked = nil
 		rs := []rune(j.token.Value)
@@ -111,47 +111,48 @@ func (j *jsparser) statement() *Ast {
 	return nil
 }
 
-func (j *jsparser) read_string() *Ast {
+func (j *jsparser) read_string() IAst {
 	dir := j.in_directives
-	stat := j.simple_statement()
-	if dir && stat.Attributes[0].Type == scanner.TokenString && !j.is_token(scanner.TokenPunc, ",") {
-		return ast(Ast_Directive, stat.Attributes[0].Name)
+	stat := j.simple_statement().(*Stat)
+
+	if dir && stat.Statement.Type() == Type_String && !j.is_token(scanner.TokenPunc, ",") {
+		return NewDirective(stat.Statement.Name())
 	}
 	return stat
 }
 
-func (j *jsparser) read_punc() *Ast {
+func (j *jsparser) read_punc() IAst {
 	switch j.token.Value {
 	case "{":
-		return ast(Ast_Block, "", j.block_())
+		return NewBlock(j.block_())
 	case "[", "(":
 		return j.simple_statement()
 	case ";":
 		j.next()
-		return ast(Ast_None, "block")
+		return NewBlock(nil)
 	default:
 		j.throw("")
 		return nil
 	}
 }
 
-func (j *jsparser) read_keyword() *Ast {
+func (j *jsparser) read_keyword() IAst {
 	val := j.token.Value
 	j.next()
 	switch val {
 	case "break":
-		return j.break_cont(Ast_Break)
+		return j.break_cont(Type_Break)
 	case "continue":
-		return j.break_cont(Ast_Coutinue)
+		return j.break_cont(Type_Coutinue)
 	case "debugger":
 		j.semicolon()
-		return ast(Ast_None, "debugger")
+		return NewDebugger()
 	case "do":
 		body := j.loop(j.statement)
 		j.expect_token(scanner.TokenKeyword, "while")
 		cond := j.parenthesised()
 		j.semicolon()
-		return ast(Ast_Do, "", cond, body)
+		return NewDo(cond, body)
 	case "for":
 		return j.for_()
 	case "function":
@@ -164,23 +165,23 @@ func (j *jsparser) read_keyword() *Ast {
 		}
 		if j.is_token(scanner.TokenPunc, ";") {
 			j.next()
-			return ast(Ast_Return, "")
+			return NewReturn(nil)
 		} else if j.can_insert_semicolon() {
-			return ast(Ast_Return, "")
+			return NewReturn(nil)
 		} else {
-			a := ast(Ast_Return, "", j.expression(true, false))
+			a := NewReturn(j.expression(true, false))
 			j.semicolon()
 			return a
 		}
 	case "switch":
-		return ast(Ast_Switch, "", j.parenthesised(), j.switch_block_())
+		return NewSwitch(j.parenthesised(), j.switch_block_())
 	case "throw":
 		if j.token.Nlb {
 			j.throw("Illegal newline after 'throw'")
 		}
 		ret := j.expression(true, false)
 		j.semicolon()
-		return ast(Ast_Thorw, "", ret)
+		return NewThrow(ret)
 
 	case "try":
 		return j.try_()
@@ -193,16 +194,16 @@ func (j *jsparser) read_keyword() *Ast {
 		j.semicolon()
 		return ret
 	case "while":
-		return ast(Ast_While, "", j.parenthesised(), j.loop(j.statement))
+		return NewWhile(j.parenthesised(), j.loop(j.statement))
 	case "with":
-		return ast(Ast_With, "", j.parenthesised(), j.statement())
+		return NewWith(j.parenthesised(), j.statement())
 	default:
 		j.throw("")
 		return nil
 	}
 }
 
-func (j *jsparser) read_name() *Ast {
+func (j *jsparser) read_name() IAst {
 	if j.is(j.peek(), scanner.TokenPunc, ":") {
 		val := j.token.Value
 		j.next()
@@ -222,7 +223,7 @@ func (j *jsparser) semicolon() {
 }
 
 //------------[ expression ]---------------
-func (j *jsparser) expr_atom(allow_calls bool) *Ast {
+func (j *jsparser) expr_atom(allow_calls bool) IAst {
 	if j.is_token(scanner.TokenOperator, "new") {
 		j.next()
 		return j.new_()
@@ -248,9 +249,10 @@ func (j *jsparser) expr_atom(allow_calls bool) *Ast {
 		return j.subscripts(j.function_(false), allow_calls)
 	}
 	if scanner.IsAtomStartToken(j.token) {
-		atom := ast(TokenTypeToAstType(j.token.Type), j.token.Value)
-		if atom.Type == Ast_Regexp {
-			atom.Attributes = append(atom.Attributes, ast(Ast_Regexp_Mode, j.token.Attributes[0]))
+		atom := NewAtom(TokenTypeToAstType(j.token.Type), j.token.Value)
+		if atom.Type() == Type_Regexp {
+			ret := atom.(*Regexp)
+			ret.Mode = j.token.Attributes[0]
 		}
 		j.next()
 		return j.subscripts(atom, allow_calls)
@@ -259,33 +261,33 @@ func (j *jsparser) expr_atom(allow_calls bool) *Ast {
 	return nil
 }
 
-func (j *jsparser) subscripts(expr *Ast, allow_calls bool) *Ast {
+func (j *jsparser) subscripts(expr IAst, allow_calls bool) IAst {
 	if j.is_token(scanner.TokenPunc, ".") {
 		j.next()
-		return j.subscripts(ast(Ast_Dot, j.as_name(), expr), allow_calls)
+		return j.subscripts(NewDot(j.as_name(), expr), allow_calls)
 	}
 	if j.is_token(scanner.TokenPunc, "[") {
 		j.next()
 		ret := j.expression(true, false)
 		j.expect("]")
-		return j.subscripts(ast(Ast_Sub, "", expr, ret), allow_calls)
+		return j.subscripts(NewSub(expr, ret), allow_calls)
 	}
 	if allow_calls && j.is_token(scanner.TokenPunc, "(") {
 		j.next()
-		return j.subscripts(ast(Ast_Call, "", expr, j.expr_list(")", false, false)), true)
+		return j.subscripts(NewCall(expr, j.expr_list(")", false, false)), true)
 	}
 	return expr
 }
 
-func (j *jsparser) maybe_unary(allow_calls bool) *Ast {
+func (j *jsparser) maybe_unary(allow_calls bool) IAst {
 	if j.is_token(scanner.TokenOperator, "") && adapter.UnaryPrefix(j.token.Value) {
 		ret := j.token.Value
 		j.next()
-		return ast(Ast_Unary_Prefix, ret, j.maybe_unary(allow_calls))
+		return NewUnaryPrefix(ret, j.maybe_unary(allow_calls))
 	}
 	val := j.expr_atom(allow_calls)
 	for j.is_token(scanner.TokenOperator, "") && adapter.UnaryPostfix(j.token.Value) && !j.token.Nlb {
-		val = ast(Ast_Unary_Postfix, j.token.Value, val)
+		val = NewUnaryPostfix(j.token.Value, val)
 		j.next()
 	}
 	return val
@@ -303,18 +305,18 @@ func (j *jsparser) as_name() string {
 	return ""
 }
 
-func (j *jsparser) expression(commas, no_in bool) *Ast {
+func (j *jsparser) expression(commas, no_in bool) IAst {
 	expr := j.maybe_assign(no_in)
 	if commas && j.is_token(scanner.TokenPunc, ",") {
 		j.next()
-		return ast(Ast_Seq, "", expr, j.expression(true, no_in))
+		return NewSeq(expr, j.expression(true, no_in))
 	}
 	return expr
 }
 
-func (j *jsparser) expr_list(end string, allow_trailing_comma, allow_empty bool) *Ast {
+func (j *jsparser) expr_list(end string, allow_trailing_comma, allow_empty bool) []IAst {
 	first := true
-	a := make([]*Ast, 0)
+	a := make([]IAst, 0)
 	for !j.is_token(scanner.TokenPunc, end) {
 		if first {
 			first = false
@@ -325,27 +327,27 @@ func (j *jsparser) expr_list(end string, allow_trailing_comma, allow_empty bool)
 			break
 		}
 		if j.is_token(scanner.TokenPunc, ",") && allow_empty {
-			a = append(a, ast(Ast_Atom, "undefined"))
+			a = append(a, NewAtom(Type_Atom, "undefined"))
 		} else {
 			a = append(a, j.expression(false, false))
 		}
 	}
 	j.next()
-	return ast(Ast_None, "", a...)
+	return a
 }
 
-func (j *jsparser) maybe_assign(no_in bool) *Ast {
+func (j *jsparser) maybe_assign(no_in bool) IAst {
 	left := j.maybe_conditional(no_in)
 	val := j.token.Value
 	ass := adapter.Assignment(val)
 	if j.is_token(scanner.TokenOperator, "") && ass != "" {
 		j.next()
-		return ast(Ast_Assign, ass, left, j.maybe_assign(no_in))
+		return NewAssign(ass, left, j.maybe_assign(no_in))
 	}
 	return left
 }
 
-func (j *jsparser) expr_op(left *Ast, min_prec int, no_in bool) *Ast {
+func (j *jsparser) expr_op(left IAst, min_prec int, no_in bool) IAst {
 	op := ""
 	if j.is_token(scanner.TokenOperator, "") {
 		op = j.token.Value
@@ -358,56 +360,56 @@ func (j *jsparser) expr_op(left *Ast, min_prec int, no_in bool) *Ast {
 	if prec != -1 && prec > min_prec {
 		j.next()
 		right := j.expr_op(j.maybe_unary(true), prec, no_in)
-		return j.expr_op(ast(Ast_Binnary, op, left, right), min_prec, no_in)
+		return j.expr_op(NewBinary(op, left, right), min_prec, no_in)
 	}
 	return left
 }
 
-func (j *jsparser) maybe_conditional(no_in bool) *Ast {
+func (j *jsparser) maybe_conditional(no_in bool) IAst {
 	expr := j.expr_op(j.maybe_unary(true), 0, no_in)
 	if j.is_token(scanner.TokenOperator, "?") {
 		j.next()
 		yes := j.expression(false, false)
 		j.expect(":")
-		return ast(Ast_Conditional, "", expr, yes, j.expression(false, no_in))
+		return NewConditional(expr, yes, j.expression(false, no_in))
 	}
 	return expr
 }
 
 //loop
-type loop_fn func() *Ast
+type loop_fn func() IAst
 
-func (j *jsparser) loop(fn loop_fn) *Ast {
+func (j *jsparser) loop(fn loop_fn) IAst {
 	j.in_loop += 1
 	ret := fn()
 	j.in_loop -= 1
 	return ret
 }
 
-func (j *jsparser) simple_statement() *Ast {
+func (j *jsparser) simple_statement() IAst {
 	ret := j.expression(true, false)
 	j.semicolon()
-	return ast(Ast_Stat, "", ret)
+	return NewStat(ret)
 }
 
 //----------------[ types ]-----------------
-func (j *jsparser) new_() *Ast {
+func (j *jsparser) new_() IAst {
 	newxp := j.expr_atom(false)
-	args := ast(Ast_None, "")
+	var args []IAst
 	if j.is_token(scanner.TokenPunc, "(") {
 		j.next()
 		args = j.expr_list(")", false, false)
 	}
-	return j.subscripts(ast(Ast_New, "", newxp, args), true)
+	return j.subscripts(NewNew(newxp, args), true)
 }
 
-func (j *jsparser) array_() *Ast {
-	return ast(Ast_Array, "", j.expr_list("]", true, true))
+func (j *jsparser) array_() IAst {
+	return NewArray(j.expr_list("]", true, true))
 }
 
-func (j *jsparser) object_() *Ast {
+func (j *jsparser) object_() IAst {
 	first := true
-	a := make([]*Ast, 0)
+	a := make([]*Property, 0)
 	for !j.is_token(scanner.TokenPunc, "}") {
 		if first {
 			first = false
@@ -420,19 +422,19 @@ func (j *jsparser) object_() *Ast {
 		t := j.token.Type
 		name := j.as_property_name()
 		if t == scanner.TokenName && (name == "get" || name == "set") && !j.is_token(scanner.TokenPunc, ":") {
-			a = append(a, ast(Ast_None, name, j.function_(false)))
+			a = append(a, NewGetSet(j.as_name(), name, j.function_(false)))
 		} else {
 			j.expect(":")
-			a = append(a, ast(Ast_None, name, j.expression(false, false)))
+			a = append(a, NewProperty(name, j.expression(false, false)))
 		}
 	}
 	j.next()
-	return ast(Ast_Object, "", a...)
+	return NewObject(a)
 }
 
-func (j *jsparser) block_() *Ast {
+func (j *jsparser) block_() []IAst {
 	j.expect("{")
-	a := make([]*Ast, 0)
+	a := make([]IAst, 0)
 	for !j.is_token(scanner.TokenPunc, "}") {
 		if !j.input.Eof() {
 			j.throw("")
@@ -440,10 +442,10 @@ func (j *jsparser) block_() *Ast {
 		a = append(a, j.statement())
 	}
 	j.next()
-	return ast(Ast_Block, "", a...)
+	return a
 }
 
-func (j *jsparser) function_(in_statement bool) *Ast {
+func (j *jsparser) function_(in_statement bool) IAst {
 	name := ""
 	if j.is_token(scanner.TokenName, "") {
 		name = j.token.Value
@@ -454,16 +456,16 @@ func (j *jsparser) function_(in_statement bool) *Ast {
 		j.throw("")
 	}
 	j.expect("(")
-	ty := Ast_Func
+	ty := Type_Func
 	if in_statement {
-		ty = Ast_Defunc
+		ty = Type_Defunc
 	}
-	return ast(ty, name, j.function_params(), j.function_block())
+	return NewFunction(ty, name, j.function_params(), j.function_block())
 }
 
-func (j *jsparser) function_params() *Ast {
+func (j *jsparser) function_params() []IAst {
 	first := true
-	a := make([]*Ast, 0)
+	a := make([]IAst, 0)
 	for !j.is_token(scanner.TokenPunc, ")") {
 		if first {
 			first = false
@@ -473,14 +475,14 @@ func (j *jsparser) function_params() *Ast {
 		if !j.is_token(scanner.TokenName, "") {
 			j.throw("")
 		}
-		a = append(a, ast(Ast_Func_Params, j.token.Value))
+		a = append(a, NewString(j.token.Value))
 		j.next()
 	}
 	j.next()
-	return ast(Ast_None, "", a...)
+	return a
 }
 
-func (j *jsparser) function_block() *Ast {
+func (j *jsparser) function_block() []IAst {
 	j.in_func += 1
 	loop := j.in_loop
 	j.in_directives = true
@@ -501,7 +503,7 @@ func (j *jsparser) as_property_name() string {
 	return j.as_name()
 }
 
-func (j *jsparser) break_cont(t int) *Ast {
+func (j *jsparser) break_cont(t int) IAst {
 	name := ""
 	if !j.can_insert_semicolon() {
 		if j.is_token(scanner.TokenName, "") {
@@ -517,7 +519,7 @@ func (j *jsparser) break_cont(t int) *Ast {
 		j.throw(fmt.Sprint(t, " not inside a loop or switch"))
 	}
 	j.semicolon()
-	return ast(t, name)
+	return NewAtom(t, name)
 }
 
 func (j *jsparser) rember(name string) bool {
@@ -529,9 +531,9 @@ func (j *jsparser) rember(name string) bool {
 	return false
 }
 
-func (j *jsparser) for_() *Ast {
+func (j *jsparser) for_() IAst {
 	j.expect("(")
-	var init *Ast
+	var init IAst
 	if !j.is_token(scanner.TokenPunc, ";") {
 		if j.is_token(scanner.TokenKeyword, "var") {
 			j.next()
@@ -540,7 +542,7 @@ func (j *jsparser) for_() *Ast {
 			init = j.expression(true, true)
 		}
 		if j.is_token(scanner.TokenOperator, "in") {
-			if init.Type == Ast_Var && len(init.Attributes) > 1 {
+			if init.Type() == Type_Var && len(init.(*Var).Defs) > 1 {
 				j.throw("Only one variable declaration allowed in for..in loop")
 			}
 			return j.for_in(init)
@@ -549,10 +551,10 @@ func (j *jsparser) for_() *Ast {
 	return j.regular_for(init)
 }
 
-func (j *jsparser) regular_for(init *Ast) *Ast {
+func (j *jsparser) regular_for(init IAst) IAst {
 	j.expect(";")
-	var test *Ast
-	var step *Ast
+	var test IAst
+	var step IAst
 	if !j.is_token(scanner.TokenPunc, ";") {
 		test = j.expression(true, false)
 	}
@@ -561,24 +563,24 @@ func (j *jsparser) regular_for(init *Ast) *Ast {
 		step = j.expression(true, false)
 	}
 	j.expect(")")
-	return ast(Ast_For, "", init, test, step, j.loop(j.statement))
+	return NewFor(Type_For, init, test, step, j.loop(j.statement))
 }
 
-func (j *jsparser) for_in(init *Ast) *Ast {
-	var lhs *Ast
-	if init.Type == Ast_Var {
-		lhs = ast(Ast_Name, init.Attributes[0].Name)
+func (j *jsparser) for_in(init IAst) IAst {
+	var lhs IAst
+	if init.Type() == Type_Var {
+		lhs = NewAtom(Type_Name, init.(*Var).Defs[0].Name())
 	} else {
 		lhs = init
 	}
 	j.next()
 	obj := j.expression(true, false)
 	j.expect(")")
-	return ast(Ast_For_In, "", init, lhs, obj, j.loop(j.statement))
+	return NewFor(Type_For_In, init, lhs, obj, j.loop(j.statement))
 }
 
-func (j *jsparser) vardefs(no_in bool) []*Ast {
-	a := make([]*Ast, 0)
+func (j *jsparser) vardefs(no_in bool) []*VarDef {
+	a := make([]*VarDef, 0)
 	for {
 		if !j.is_token(scanner.TokenName, "") {
 			j.throw("")
@@ -587,9 +589,9 @@ func (j *jsparser) vardefs(no_in bool) []*Ast {
 		j.next()
 		if j.is_token(scanner.TokenOperator, "=") {
 			j.next()
-			a = append(a, ast(Ast_None, name, j.expression(false, no_in)))
+			a = append(a, NewDef(name, j.expression(false, no_in)))
 		} else {
-			a = append(a, ast(Ast_None, name))
+			a = append(a, NewDef(name, nil))
 		}
 		if !j.is_token(scanner.TokenPunc, ",") {
 			break
@@ -599,68 +601,76 @@ func (j *jsparser) vardefs(no_in bool) []*Ast {
 	return a
 }
 
-func (j *jsparser) var_(no_in bool) *Ast {
-	return ast(Ast_Var, "", j.vardefs(no_in)...)
+func (j *jsparser) var_(no_in bool) IAst {
+	return NewVar(j.vardefs(no_in))
 }
 
-func (j *jsparser) const_() *Ast {
-	return ast(Ast_Var, "", j.vardefs(false)...)
+func (j *jsparser) const_() IAst {
+	return NewVar(j.vardefs(false))
 }
 
-func (j *jsparser) if_() *Ast {
+func (j *jsparser) if_() IAst {
 	cond := j.parenthesised()
 	body := j.statement()
-	var belse *Ast
+	var belse IAst
 	if j.is_token(scanner.TokenKeyword, "else") {
 		j.next()
 		belse = j.statement()
 	}
-	return ast(Ast_If, "", cond, body, belse)
+	return NewIf(cond, body, belse)
 }
 
-func (j *jsparser) parenthesised() *Ast {
+func (j *jsparser) parenthesised() IAst {
 	j.expect("(")
 	ex := j.expression(true, false)
 	j.expect(")")
 	return ex
 }
 
-func (j *jsparser) switch_block_() *Ast {
-	return j.loop(j.switch_block_loop)
+func (j *jsparser) switch_block_() []*Case {
+	j.in_func += 1
+	loop := j.in_loop
+	j.in_directives = true
+	j.in_loop = 0
+	a := j.switch_block_loop()
+	j.in_func -= 1
+	j.in_loop = loop
+	return a
 }
 
-func (j *jsparser) switch_block_loop() *Ast {
+func (j *jsparser) switch_block_loop() []*Case {
 	j.expect("{")
-	a := make([]*Ast, 0)
-	var cur *Ast
+	a := make([]*Case, 0)
+	cur := make([]IAst, 0)
 	for !j.is_token(scanner.TokenPunc, "}") {
 		if !j.input.Eof() {
 			j.throw("")
 		}
 		if j.is_token(scanner.TokenKeyword, "case") {
 			j.next()
-			cur = ast(Ast_None, "")
 			j.expect(":")
-			a = append(a, ast(Ast_None, "", j.expression(true, false), cur))
+			a = append(a, NewCase(j.expression(true, false), cur))
+			cur = make([]IAst, 0)
 		} else if j.is_token(scanner.TokenKeyword, "default") {
 			j.next()
 			j.expect(":")
-			cur = ast(Ast_None, "")
-			a = append(a, ast(Ast_None, "", nil, cur))
+			a = append(a, NewCase(nil, cur))
+			cur = make([]IAst, 0)
 		} else {
 			if cur == nil {
 				j.throw("")
 			}
-			cur.Attributes = append(cur.Attributes, j.statement())
+			cur = append(cur, j.statement())
 		}
 	}
 	j.next()
-	return ast(Ast_None, "", a...)
+	return a
 }
 
-func (j *jsparser) try_() *Ast {
+func (j *jsparser) try_() IAst {
 	body := j.block_()
-	var catch, finally *Ast
+	var catch *Catch
+	var finally []IAst
 	if j.is_token(scanner.TokenKeyword, "catch") {
 		j.next()
 		j.expect("(")
@@ -670,7 +680,7 @@ func (j *jsparser) try_() *Ast {
 		name := j.token.Value
 		j.next()
 		j.expect(")")
-		catch = ast(Ast_None, name, j.block_())
+		catch = NewCatch(name, j.block_())
 	}
 	if j.is_token(scanner.TokenKeyword, "finally") {
 		j.next()
@@ -679,5 +689,5 @@ func (j *jsparser) try_() *Ast {
 	if catch == nil && finally == nil {
 		j.throw("miss catch/finally blocks")
 	}
-	return ast(Ast_Try, "", body, catch, finally)
+	return NewTry(body, finally, catch)
 }

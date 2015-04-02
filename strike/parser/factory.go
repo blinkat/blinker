@@ -5,7 +5,7 @@ import (
 	"github.com/blinkat/blinks/strike/parser/scanner"
 )
 
-func Parser(text string, parser_type int) *Ast {
+func Parser(text string, parser_type int) IAst {
 	switch parser_type {
 	case strike.JS_PARSER:
 

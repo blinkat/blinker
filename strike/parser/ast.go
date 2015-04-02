@@ -5,88 +5,362 @@ import (
 )
 
 const (
-	Ast_None     = -1
-	Ast_TopLevel = iota
-	Ast_Punc
-	Ast_Dot
-	Ast_Sub
-	Ast_Call
-	Ast_Atom
-	Ast_New
-	Ast_Array
-	Ast_Regexp
-	Ast_Name
-	Ast_String
-	Ast_Number
-	Ast_Regexp_Mode
-	Ast_Unary_Prefix
-	Ast_Unary_Postfix
-	Ast_Binnary
-	Ast_Conditional
-	Ast_Assign
-	Ast_Seq
-	Ast_Object
-	Ast_Defunc
-	Ast_Func
-	Ast_Block
-	Ast_Func_Params
-	Ast_Label
-	Ast_Stat
-	Ast_Var
-	Ast_For
-	Ast_For_In
-	Ast_If
-	Ast_Try
-	Ast_Directive
-	Ast_Do
-	Ast_Return
-	Ast_Switch
-	Ast_Thorw
-	Ast_While
-	Ast_With
-	Ast_Break
-	Ast_Coutinue
+	Type_None     = -1
+	Type_TopLevel = iota
+	Type_Punc
+	Type_Dot
+	Type_Sub
+	Type_Call
+	Type_Atom
+	Type_New
+	Type_Array
+	Type_Regexp
+	Type_Name
+	Type_String
+	Type_Number
+	Type_Regexp_Mode
+	Type_Unary_Prefix
+	Type_Unary_Postfix
+	Type_Binnary
+	Type_Conditional
+	Type_Assign
+	Type_Seq
+	Type_Object
+	Type_Defunc
+	Type_Func
+	Type_Block
+	Type_Func_Params
+	Type_Label
+	Type_Stat
+	Type_Var
+	Type_For
+	Type_For_In
+	Type_If
+	Type_Try
+	Type_Directive
+	Type_Do
+	Type_Return
+	Type_Switch
+	Type_Thorw
+	Type_While
+	Type_With
+	Type_Break
+	Type_Coutinue
+	Type_Debugger
 )
 
-type Ast struct {
-	Type       int
-	Name       string
-	Attributes []*Ast
-	AtTop      bool
-	Splice     bool
-	AtValue    *Ast
+var ast_type_strings []string
+
+func init() {
+	ast_type_strings = make([]string, 0)
+	ast_type_strings = append(ast_type_strings,
+		"None",
+		"TopLevel",
+		"Punc",
+		"Dot",
+		"Sub",
+		"Call",
+		"Atom",
+		"New",
+		"Array",
+		"Regexp",
+		"Name",
+		"String",
+		"Number",
+		"Regexp_Mode",
+		"Unary_Prefix",
+		"Unary_Postfix",
+		"Binnary",
+		"Conditional",
+		"Assign",
+		"Seq",
+		"Object",
+		"Defunc",
+		"Func",
+		"Block",
+		"Func_Params",
+		"Label",
+		"Stat",
+		"Var",
+		"For",
+		"For_In",
+		"If",
+		"Try",
+		"Directive",
+		"Do",
+		"Return",
+		"Switch",
+		"Thorw",
+		"While",
+		"With",
+		"Break",
+		"Coutinue",
+	)
 }
 
-func ast(t int, name string, attr ...*Ast) *Ast {
-	a := &Ast{}
-	a.Type = t
-	a.Name = name
-	a.AtTop = false
-	a.Splice = false
-	a.AtValue = nil
-	a.Attributes = append(make([]*Ast, 0), attr...)
+//------------------[ ast ]---------------------
 
-	return a
+type IAst interface {
+	Type() int
+	SetType(i int)
+	Name() string
+	SetName(n string)
+
+	AtTop() bool
+	SetAtTop(b bool)
+	Splice() bool
+	SetSplice(b bool)
+
+	AtValue() IAst
+	SetAtValue(v IAst)
 }
 
 func TokenTypeToAstType(t int) int {
 	switch t {
 	case scanner.TokenName:
-		return Ast_Name
+		return Type_Name
 	case scanner.TokenString:
-		return Ast_String
+		return Type_String
 	case scanner.TokenNumber:
-		return Ast_Number
+		return Type_Number
 	case scanner.TokenRegexp:
-		return Ast_Regexp
+		return Type_Regexp
 	case scanner.TokenAtom:
-		return Ast_Atom
+		return Type_Atom
 
 	default:
-		return Ast_None
+		return Type_None
 	}
 }
 
-func NewAst(t int, name string, attr ...*Ast) *Ast {
-	return ast(t, name, attr...)
+func GetTypeName(t int) string {
+	if t >= -1 && t < len(ast_type_strings)-1 {
+		return ast_type_strings[t+1]
+	}
+	return ""
+}
+
+//----------[ asts ]-----------
+type ast struct {
+	t      int
+	name   string
+	at_top bool
+	splice bool
+	at_val IAst
+}
+
+func (a *ast) Type() int {
+	return a.t
+}
+
+func (a *ast) SetType(t int) {
+	a.t = t
+}
+
+func (a *ast) Name() string {
+	return a.name
+}
+
+func (a *ast) SetName(n string) {
+	a.name = n
+}
+
+func (a *ast) AtTop() bool {
+	return a.at_top
+}
+
+func (a *ast) SetAtTop(b bool) {
+	a.at_top = b
+}
+
+func (a *ast) Splice() bool {
+	return a.splice
+}
+
+func (a *ast) SetSplice(b bool) {
+	a.splice = b
+}
+
+func (a *ast) AtValue() IAst {
+	return a.at_val
+}
+
+func (a *ast) SetAtValue(v IAst) {
+	a.at_val = v
+}
+
+//----------[ children ]------------
+type Toplevel struct {
+	ast
+	Statements []IAst
+}
+
+type Label struct {
+	ast
+	Labels []string
+	Stat   IAst
+}
+
+type Directive struct {
+	ast
+}
+
+type Block struct {
+	ast
+	Statements []IAst
+}
+
+type Debugger struct {
+	ast
+}
+
+type Dot struct {
+	ast
+	Expr IAst
+}
+
+type Sub struct {
+	ast
+	Expr IAst
+	Ret  IAst
+}
+
+type Call struct {
+	ast
+	Expr IAst
+	List []IAst
+}
+
+type Regexp struct {
+	ast
+	Mode string
+}
+
+type Unary struct {
+	ast
+	Expr IAst
+}
+
+type Seq struct {
+	ast
+	Expr1 IAst
+	Expr2 IAst
+}
+
+type Assign struct {
+	ast
+	Left  IAst
+	Right IAst
+}
+
+type Conditional struct {
+	ast
+	Expr  IAst
+	True  IAst
+	False IAst
+}
+
+type Binary struct {
+	ast
+	Left  IAst
+	Right IAst
+}
+
+type Stat struct {
+	ast
+	Statement IAst
+}
+
+type New struct {
+	ast
+	Expr IAst
+	Args []IAst
+}
+
+type Array struct {
+	ast
+	List []IAst
+}
+
+type Property struct {
+	ast
+	Expr IAst
+	Oper string
+}
+
+type Object struct {
+	ast
+	Propertys []*Property
+}
+
+type Function struct {
+	ast
+	Args []IAst
+	Body []IAst
+}
+
+type For struct {
+	ast
+	Init IAst
+	Cond IAst
+	Step IAst
+	Body IAst
+}
+
+type Var struct {
+	ast
+	Defs []*VarDef
+}
+
+type VarDef struct {
+	ast
+	Expr IAst
+}
+
+type If struct {
+	ast
+	Cond IAst
+	Body IAst
+	Else IAst
+}
+
+type Switch struct {
+	ast
+	Expr  IAst
+	Cases []*Case
+}
+
+type Case struct {
+	ast
+	Expr IAst
+	Body []IAst
+}
+
+type Try struct {
+	ast
+	Body    []IAst
+	Catchs  *Catch
+	Finally []IAst
+}
+
+type Catch struct {
+	ast
+	Body []IAst
+}
+
+type Do struct {
+	ast
+	Cond IAst
+	Body IAst
+}
+
+type Return struct {
+	ast
+	Expr IAst
+}
+
+type While struct {
+	ast
+	Expr IAst
+	Body IAst
 }
