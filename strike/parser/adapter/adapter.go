@@ -116,3 +116,11 @@ func ComparedRuneSlice(s1, s2 []rune) bool {
 	}
 	return true
 }
+
+func IsIdentifier(name string) bool {
+	return identifier_char.MatchString(name) &&
+		name != "this" &&
+		!KeywordsAtom(name) &&
+		!ReservedWords(name) &&
+		!Keywords(name)
+}

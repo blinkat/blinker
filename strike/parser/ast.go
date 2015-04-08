@@ -47,6 +47,12 @@ const (
 	Type_Break
 	Type_Coutinue
 	Type_Debugger
+	Type_Property
+	Type_Const
+	Type_Lambda
+	Type_Arg
+	Type_Catch
+	Type_Func_Body
 )
 
 var ast_type_strings []string
@@ -95,6 +101,13 @@ func init() {
 		"With",
 		"Break",
 		"Coutinue",
+		"Debugger",
+		"Property",
+		"Const",
+		"Lambda",
+		"Arg",
+		"Catch",
+		"Func_Body",
 	)
 }
 
@@ -113,6 +126,9 @@ type IAst interface {
 
 	AtValue() IAst
 	SetAtValue(v IAst)
+
+	Scope() *AstScope
+	SetScope(v *AstScope)
 }
 
 func TokenTypeToAstType(t int) int {
@@ -147,6 +163,7 @@ type ast struct {
 	at_top bool
 	splice bool
 	at_val IAst
+	scope  *AstScope
 }
 
 func (a *ast) Type() int {
@@ -189,6 +206,13 @@ func (a *ast) SetAtValue(v IAst) {
 	a.at_val = v
 }
 
+func (a *ast) Scope() *AstScope {
+	return a.scope
+}
+func (a *ast) SetScope(v *AstScope) {
+	a.scope = v
+}
+
 //----------[ children ]------------
 type Toplevel struct {
 	ast
@@ -197,8 +221,7 @@ type Toplevel struct {
 
 type Label struct {
 	ast
-	Labels []string
-	Stat   IAst
+	Stat IAst
 }
 
 type Directive struct {
@@ -296,7 +319,7 @@ type Object struct {
 type Function struct {
 	ast
 	Args []IAst
-	Body []IAst
+	Body *FuncBody
 }
 
 type For struct {
@@ -363,4 +386,9 @@ type While struct {
 	ast
 	Expr IAst
 	Body IAst
+}
+
+type FuncBody struct {
+	ast
+	Exprs []IAst
 }

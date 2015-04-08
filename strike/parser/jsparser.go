@@ -84,7 +84,7 @@ func (j *jsparser) labeled_statement(label string) IAst {
 	j.labels = append(j.labels, label)
 	stat := j.statement()
 	j.labels = j.labels[:len(j.labels)-1]
-	return NewLabel(j.labels, stat)
+	return NewLabel(label, stat)
 }
 
 //-------------[ statement ]---------------
@@ -460,7 +460,7 @@ func (j *jsparser) function_(in_statement bool) IAst {
 	if in_statement {
 		ty = Type_Defunc
 	}
-	return NewFunction(ty, name, j.function_params(), j.function_block())
+	return NewFunction(ty, name, j.function_params(), NewFuncBody(j.function_block()))
 }
 
 func (j *jsparser) function_params() []IAst {

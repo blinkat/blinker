@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	"github.com/blinkat/blinks/strike"
 	"github.com/blinkat/blinks/strike/parser/adapter"
 )
 
@@ -10,12 +9,8 @@ type Tokenizer interface {
 	Eof() bool
 }
 
-func GeneratorTokenizer(parser_type int, text string) Tokenizer {
-	switch parser_type {
-	case strike.JS_PARSER:
-		return newJsTokenizer(text)
-	}
-	return nil
+func GeneratorTokenizerJs(text string) Tokenizer {
+	return newJsTokenizer(text)
 }
 
 func newJsTokenizer(text string) Tokenizer {

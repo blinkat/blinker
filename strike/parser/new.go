@@ -15,10 +15,10 @@ func NewString(val string) IAst {
 	return a
 }
 
-func NewLabel(v []string, stat IAst) *Label {
+func NewLabel(v string, stat IAst) *Label {
 	a := &Label{}
 	a.t = Type_Label
-	a.Labels = v
+	a.name = v
 	a.Stat = stat
 	return a
 }
@@ -157,6 +157,7 @@ func NewArray(l []IAst) *Array {
 func NewGetSet(name, op string, expr IAst) *Property {
 	a := &Property{}
 	a.name = name
+	a.t = Type_Property
 	a.Oper = op
 	a.Expr = expr
 	return a
@@ -164,6 +165,7 @@ func NewGetSet(name, op string, expr IAst) *Property {
 
 func NewProperty(name string, expr IAst) *Property {
 	a := &Property{}
+	a.t = Type_Property
 	a.name = name
 	a.Expr = expr
 	a.Oper = "none"
@@ -177,7 +179,7 @@ func NewObject(p []*Property) *Object {
 	return a
 }
 
-func NewFunction(t int, name string, args []IAst, b []IAst) *Function {
+func NewFunction(t int, name string, args []IAst, b *FuncBody) *Function {
 	f := &Function{}
 	f.t = t
 	f.name = name
@@ -286,4 +288,33 @@ func NewWith(expr, body IAst) *While {
 	w.Body = body
 	w.t = Type_With
 	return w
+}
+
+func NewNumber(val string) IAst {
+	r := &ast{}
+	r.name = val
+	r.t = Type_Number
+	return r
+}
+
+func NewRegexp(n, m string) *Regexp {
+	r := &Regexp{}
+	r.name = n
+	r.Mode = m
+	r.t = Type_Regexp
+	return r
+}
+
+func NewConst(defs []*VarDef) *Var {
+	a := &Var{}
+	a.t = Type_Const
+	a.Defs = defs
+	return a
+}
+
+func NewFuncBody(es []IAst) *FuncBody {
+	f := &FuncBody{}
+	f.t = Type_Func_Body
+	f.Exprs = es
+	return f
 }

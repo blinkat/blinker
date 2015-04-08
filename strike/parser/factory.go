@@ -1,23 +1,19 @@
 package parser
 
 import (
-	"github.com/blinkat/blinks/strike"
 	"github.com/blinkat/blinks/strike/parser/scanner"
 )
 
-func Parser(text string, parser_type int) IAst {
-	switch parser_type {
-	case strike.JS_PARSER:
-
-	}
-	return nil
+func ParseJs(text string) IAst {
+	p := generator_js(text)
+	return p.Parse()
 }
 
 //--------------[ ctors ]----------------
 func generator_js(text string) *jsparser {
 	j := &jsparser{}
 	j.in_directives = true
-	j.input = scanner.GeneratorTokenizer(strike.JS_PARSER, text)
+	j.input = scanner.GeneratorTokenizerJs(text)
 	j.prev = nil
 	j.peeked = nil
 	j.in_func = 0
@@ -25,4 +21,8 @@ func generator_js(text string) *jsparser {
 	j.labels = make([]string, 0)
 	j.token = j.next()
 	return j
+}
+
+func init() {
+	init_digits()
 }
