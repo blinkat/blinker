@@ -17,6 +17,7 @@ var clr_NONE *regexp.Regexp
 
 var test_comment *regexp.Regexp
 var identifier_char *regexp.Regexp
+var is_float *regexp.Regexp
 
 func init_regexp() {
 	re_HEX_NUMBER = regexp.MustCompile("(?i)^0x[0-9a-f]+$")
@@ -30,6 +31,7 @@ func init_regexp() {
 	clr_NONE = regexp.MustCompile("^\uFEFF")
 	test_comment = regexp.MustCompile("(?i)^@cc_on")
 	identifier_char = regexp.MustCompile("(?i)^[a-z_$][a-z0-9_$]*$")
+	is_float = regexp.MustCompile("^-?([1-9]\\d*\\.\\d*|0\\.\\d*[1-9]\\d*|0?\\.0+|0)$")
 }
 
 func IsLetter(ch rune) bool {
@@ -77,4 +79,8 @@ func ClearWhite(t string) string {
 
 func TestComment(t string) bool {
 	return test_comment.MatchString(t)
+}
+
+func IsFloat(t string) bool {
+	return is_float.MatchString(t)
 }
