@@ -2,7 +2,6 @@ package squeeze
 
 import (
 	p "github.com/blinkat/blinks/strike/parser"
-	"github.com/blinkat/blinks/strike/parser/adapter"
 )
 
 func last_stat(a p.IAst) p.IAst {
@@ -31,7 +30,7 @@ func boolean_expr(expr p.IAst) bool {
 		(expr.Type() == p.Type_Binnary && member(binary_symbol_1, name)) ||
 		(expr.Type() == p.Type_Binnary && member(binary_symbol_2, name) &&
 			boolean_expr(expr.(*p.Binary).Left) && boolean_expr(expr.(*p.Binary).Right)) ||
-		(expr.Type() == p.Conditional &&
+		(expr.Type() == p.Type_Conditional &&
 			boolean_expr(expr.(*p.Conditional).True) && boolean_expr(expr.(*p.Conditional).False)) ||
 		(expr.Type() == p.Type_Assign && expr.Name() == "true" && boolean_expr(expr.(*p.Assign).Right)) ||
 		(expr.Type() == p.Type_Seq && boolean_expr(expr.(*p.Seq).Expr2))

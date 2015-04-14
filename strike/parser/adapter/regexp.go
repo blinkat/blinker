@@ -84,3 +84,13 @@ func TestComment(t string) bool {
 func IsFloat(t string) bool {
 	return is_float.MatchString(t)
 }
+
+func IsHexNumber(t string) bool {
+	return re_HEX_NUMBER.MatchString(t)
+}
+func IsOctNumber(t string) bool {
+	return re_OCT_NUMBER.MatchString(t)
+}
+func IsDecNumber(t string) bool {
+	return re_DEC_NUMBER.MatchString(t)
+}

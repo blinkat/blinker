@@ -1,7 +1,5 @@
 package squeeze
 
-import "regexp"
-
 var unary_prefix_symbol []string
 var binary_symbol_1 []string
 var binary_symbol_2 []string

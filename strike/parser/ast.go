@@ -53,6 +53,7 @@ const (
 	Type_Arg
 	Type_Catch
 	Type_Func_Body
+	Type_Reserve
 )
 
 var ast_type_strings []string
