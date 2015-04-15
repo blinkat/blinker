@@ -1,28 +1,8 @@
-package squeeze
+package process
 
 import (
 	p "github.com/blinkat/blinks/strike/parser"
 )
-
-func last_stat(a p.IAst) p.IAst {
-	if a.Type() == p.Type_Block {
-		e := a.(*p.Block)
-		if e.Statements != nil && len(e.Statements) > 0 {
-			return e.Statements[len(e.Statements)-1]
-		}
-	}
-	return a
-}
-
-func aborts(ast p.IAst) bool {
-	if ast != nil {
-		switch last_stat(ast).Type() {
-		case p.Type_Return, p.Type_Break, p.Type_Coutinue, p.Type_Thorw:
-			return true
-		}
-	}
-	return false
-}
 
 func boolean_expr(expr p.IAst) bool {
 	name := expr.Name()
@@ -55,4 +35,28 @@ func is_string(ast p.IAst) bool {
 		ast.Type() == p.Type_Unary_Prefix && ast.Name() == "typeof" ||
 		ast.Type() == p.Type_Binnary && ast.Name() == "+" &&
 			(is_string(ast.(*p.Binary).Left) || is_string(ast.(*p.Binary).Right))
+}
+
+func last_stat(a p.IAst) p.IAst {
+	if a.Type() == p.Type_Block {
+		e := a.(*p.Block)
+		if e.Statements != nil && len(e.Statements) > 0 {
+			return e.Statements[len(e.Statements)-1]
+		}
+	}
+	return a
+}
+
+func aborts(ast p.IAst) bool {
+	if ast != nil {
+		switch last_stat(ast).Type() {
+		case p.Type_Return, p.Type_Break, p.Type_Coutinue, p.Type_Thorw:
+			return true
+		}
+	}
+	return false
+}
+
+func best_of(a1, a2 p.IAst) bool {
+
 }

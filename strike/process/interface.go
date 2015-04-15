@@ -59,7 +59,49 @@ func map_(w *Walker, arr []p.IAst) []p.IAst {
 		if val.AtTop() {
 			top = append(top, val)
 		} else {
-			ret = append(ret, w.Walk(v))
+			ret = append(ret, val)
+		}
+
+	}
+	return append(top, ret...)
+}
+
+type map_fn func(ast p.IAst) p.IAst
+
+func map_custom(fn map_fn, arr []p.IAst) []p.IAst {
+	if arr == nil {
+		return nil
+	}
+
+	top := make([]p.IAst, 0)
+	ret := make([]p.IAst, 0)
+	for _, v := range arr {
+		val := fn(v)
+		if val.AtTop() {
+			top = append(top, val)
+		} else {
+			ret = append(ret, val)
+		}
+
+	}
+	return append(top, ret...)
+}
+
+type map_def_fn func(ast *p.VarDef) *p.VarDef
+
+func map_def_custom(fn map_def_fn, arr []*p.VarDef) []*p.VarDef {
+	if arr == nil {
+		return nil
+	}
+
+	top := make([]*p.VarDef, 0)
+	ret := make([]*p.VarDef, 0)
+	for _, v := range arr {
+		val := fn(v)
+		if val.AtTop() {
+			top = append(top, val)
+		} else {
+			ret = append(ret, val)
 		}
 
 	}
