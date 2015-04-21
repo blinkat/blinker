@@ -13,7 +13,7 @@ func main() {
 	jquery = "./jquery-1.11.2.js"
 	test = "./test.js"
 
-	buffer, err := ioutil.ReadFile(jquery)
+	buffer, err := ioutil.ReadFile(test)
 	if err != nil {
 		fmt.Println(err)
 	}
