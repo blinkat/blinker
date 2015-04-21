@@ -49,6 +49,7 @@ func (w *Walker) call(ast p.IAst, foots Foots) WalkFunc {
 		return nil
 	}
 
+	//fmt.Println(p.GetTypeName(ast.Type()))
 	switch ast.Type() {
 	case p.Type_String:
 		return foots.String

@@ -1,7 +1,9 @@
 package process
 
 import (
+	"bytes"
 	p "github.com/blinkat/blinks/strike/parser"
+	"strings"
 )
 
 func boolean_expr(expr p.IAst) bool {
@@ -57,6 +59,73 @@ func aborts(ast p.IAst) bool {
 	return false
 }
 
-func best_of(a1, a2 p.IAst) bool {
+func best_of(a1, a2 p.IAst, w *Walker) p.IAst {
+	ret1 := GenCode(a1, w)
+	var ret2 string
+	if a2.Type() == p.Type_Stat {
+		ret2 = GenCode(a2.(*p.Stat).Statement, w)
+	} else {
+		ret2 = GenCode(a2, w)
+	}
 
+	if len(ret1) > len(ret2) {
+		return a2
+	} else {
+		return a1
+	}
+}
+
+func make_string(str string) string {
+	dq := 0
+	sq := 0
+	rs := []rune(str)
+
+	var rbuf bytes.Buffer
+	for _, r := range rs {
+		switch r {
+		case '\\':
+			rbuf.WriteString("\\\\")
+			break
+		case '\b':
+			rbuf.WriteString("\\b")
+			break
+		case '\f':
+			rbuf.WriteString("\\f")
+			break
+		case '\n':
+			rbuf.WriteString("\\n")
+			break
+		case '\r':
+			rbuf.WriteString("\\r")
+			break
+		case '\u2028':
+			rbuf.WriteString("\\u2028")
+			break
+		case '\u2029':
+			rbuf.WriteString("\\u2029")
+			break
+		case '"':
+			dq += 1
+			rbuf.WriteString("\\\"")
+			break
+		case '\'':
+			sq += 1
+			rbuf.WriteString("'")
+			break
+		case 0:
+			rbuf.WriteString("\\0")
+			break
+		default:
+			rbuf.WriteRune(r)
+			break
+		}
+	}
+
+	ret := rbuf.String()
+	if dq > sq {
+		ret = strings.Replace(ret, "\x27", "\\'", 0)
+		return "'" + ret + "'"
+	} else {
+		return "\"" + strings.Replace(ret, "\x22", "\\\"", 0) + "\""
+	}
 }

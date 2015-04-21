@@ -1,5 +1,5 @@
-
-(function (){
-	"use strict";
-	alert("1");
-})();
+if (b) {
+	alert(b.str);
+}else if (b) {
+	alert(b.str);
+}

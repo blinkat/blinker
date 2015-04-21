@@ -29,7 +29,10 @@ func (j *jsparser) Parse() IAst {
 }
 
 func (j *jsparser) is_token(t int, value string) bool {
-	return j.is(j.token, t, value)
+	if j.token != nil {
+		return j.is(j.token, t, value)
+	}
+	return false
 }
 
 func (j *jsparser) is(tok *scanner.Token, t int, val string) bool {

@@ -109,6 +109,7 @@ func init() {
 		"Arg",
 		"Catch",
 		"Func_Body",
+		"Reserve",
 	)
 }
 
@@ -130,6 +131,8 @@ type IAst interface {
 
 	Scope() *AstScope
 	SetScope(v *AstScope)
+
+	TypeName() string
 }
 
 func TokenTypeToAstType(t int) int {
@@ -152,7 +155,7 @@ func TokenTypeToAstType(t int) int {
 
 func GetTypeName(t int) string {
 	if t >= -1 && t < len(ast_type_strings)-1 {
-		return ast_type_strings[t+1]
+		return ast_type_strings[t]
 	}
 	return ""
 }
@@ -212,6 +215,10 @@ func (a *ast) Scope() *AstScope {
 }
 func (a *ast) SetScope(v *AstScope) {
 	a.scope = v
+}
+
+func (a *ast) TypeName() string {
+	return GetTypeName(a.t)
 }
 
 //----------[ children ]------------

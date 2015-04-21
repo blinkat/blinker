@@ -529,7 +529,7 @@ func parse_number(val string) (interface{}, error) {
 }
 
 //---------------[ when constant ]-------------
-type WhenCall func(p.IAst, p.IAst, interface{}) p.IAst
+type WhenCall func(p.IAst, interface{}) p.IAst
 type WhenNoCall func(p.IAst) p.IAst
 
 func WhenConstant(expr p.IAst, yes WhenCall, no WhenNoCall) p.IAst {
@@ -553,7 +553,7 @@ func WhenConstant(expr p.IAst, yes WhenCall, no WhenNoCall) p.IAst {
 			}
 			panic(fmt.Sprint("Can't handle constant of type:", val))
 		}
-		return yes(expr, ast, val)
+		return yes(ast, val)
 	} else {
 		if expr.Type() == p.Type_Binnary {
 			e := expr.(*p.Binary)
