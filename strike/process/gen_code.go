@@ -741,7 +741,7 @@ func (g *gen_code) add_commas(w *Walker, ast p.IAst) string {
 
 func new_gen_code() *gen_code {
 	g := &gen_code{
-		newline:    "\n",
+		newline:    "",
 		space:      "",
 		add_space1: regexp.MustCompile("[\\+\\-]$"),
 		add_space2: regexp.MustCompile("^[\\+\\-]"),
