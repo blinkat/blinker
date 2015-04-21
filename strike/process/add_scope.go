@@ -46,7 +46,7 @@ func (s *scopeWalker) _lambda(w *Walker, ast parser.IAst) parser.IAst {
 	if is_defun {
 		name = s.define(name, parser.Type_Defunc)
 	}
-	return parser.NewFunction(parser.Type_Defunc, name, f.Args, s.with_only_scope(func() parser.IAst {
+	return parser.NewFunction(ast.Type(), name, f.Args, s.with_only_scope(func() parser.IAst {
 		if !is_defun {
 			s.define(name, parser.Type_Lambda)
 		}
@@ -117,10 +117,11 @@ func (s *scopeWalker) Try(w *Walker, ast parser.IAst) parser.IAst {
 	a := ast.(*parser.Try)
 	if a.Catchs != nil {
 		body := map_(w, a.Body)
+
 		return parser.NewTry(
 			body,
 			map_(w, a.Finally),
-			parser.NewCatch(s.define(a.Name(), parser.Type_Catch), map_(w, a.Body)),
+			parser.NewCatch(s.define(a.Catchs.Name(), parser.Type_Catch), map_(w, a.Catchs.Body)),
 		)
 	}
 	return nil

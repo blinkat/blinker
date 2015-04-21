@@ -12,6 +12,8 @@ import (
 func Test(text string) {
 	ast := p.ParseJs(text)
 	wk := process.GeneratorWalker(nil)
+	ast = process.AddScopeInfo(ast, wk)
+	ast = process.MangleAst(ast, wk)
 	fmt.Println(process.GenCode(ast, wk))
 
 	//fmt.Println(ast.(*p.Toplevel).Statements[0].(*p.Var).Defs[0].Expr.(*p.Binary).Left.(*p.Binary).Left.Name())

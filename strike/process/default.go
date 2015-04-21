@@ -156,7 +156,7 @@ func (d *Default) Do(w *Walker, ast p.IAst) p.IAst {
 }
 
 func (d *Default) Return(w *Walker, ast p.IAst) p.IAst {
-	return p.NewReturn(ast.(*p.Return).Expr)
+	return p.NewReturn(w.Walk(ast.(*p.Return).Expr))
 }
 
 func (d *Default) Binary(w *Walker, ast p.IAst) p.IAst {

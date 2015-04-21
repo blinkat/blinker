@@ -63,7 +63,7 @@ func (j *jsparser) throw(msg string) {
 	if msg == "" {
 		msg = "Unexpected token"
 	}
-	s := fmt.Sprint(msg, "\ntoken:", j.token)
+	s := fmt.Sprint(msg, "\ntoken:", j.token, "\n", j.prev)
 	panic(s)
 }
 
@@ -80,6 +80,9 @@ func (j *jsparser) expect(val string) *scanner.Token {
 }
 
 func (j *jsparser) can_insert_semicolon() bool {
+	if j.token == nil {
+		return true
+	}
 	return j.token.Nlb || !j.input.Eof() || j.is_token(scanner.TokenPunc, "}")
 }
 
@@ -341,11 +344,13 @@ func (j *jsparser) expr_list(end string, allow_trailing_comma, allow_empty bool)
 
 func (j *jsparser) maybe_assign(no_in bool) IAst {
 	left := j.maybe_conditional(no_in)
-	val := j.token.Value
-	ass := adapter.Assignment(val)
-	if j.is_token(scanner.TokenOperator, "") && ass != "" {
-		j.next()
-		return NewAssign(ass, left, j.maybe_assign(no_in))
+	if j.token != nil {
+		val := j.token.Value
+		ass := adapter.Assignment(val)
+		if j.is_token(scanner.TokenOperator, "") && ass != "" {
+			j.next()
+			return NewAssign(ass, left, j.maybe_assign(no_in))
+		}
 	}
 	return left
 }
