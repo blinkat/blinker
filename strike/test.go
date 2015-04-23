@@ -2,17 +2,17 @@ package strike
 
 import (
 	"fmt"
-	p "github.com/blinkat/blinks/strike/parser"
-	"github.com/blinkat/blinks/strike/process"
+	"time"
 )
 
 //w
 
-func Test(text string) {
-	ast := p.ParseJs(text)
-	wk := process.GeneratorWalker(nil)
-	ast = process.AddScopeInfo(ast, wk)
-	ast = process.MangleAst(ast, wk)
-	ast = process.Squeeze(ast, wk)
-	fmt.Println(process.GenCode(ast, wk))
+func Test(text []byte) {
+	now := time.Now()
+	//ret := strike_css(text)
+	//strike_css(text)
+	StrikeJs(string(text))
+	fmt.Println("use time:", time.Now().Sub(now), "ms")
+	//fmt.Println("content:", string(ret))
+	//fmt.Println(ret)
 }

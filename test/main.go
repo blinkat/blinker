@@ -11,13 +11,13 @@ var test string
 
 func main() {
 	jquery = "./jquery-1.11.2.js"
-	test = "./test.js"
+	test = "./test.css"
 
 	buffer, err := ioutil.ReadFile(jquery)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	text := string(buffer)
-	strike.Test(text)
+	//text := string(buffer)
+	strike.Test(buffer)
 }

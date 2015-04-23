@@ -123,9 +123,9 @@ func make_string(str string) string {
 
 	ret := rbuf.String()
 	if dq > sq {
-		ret = strings.Replace(ret, "\x27", "\\'", 0)
+		ret = strings.Replace(ret, "\x27", "\\'", -1)
 		return "'" + ret + "'"
 	} else {
-		return "\"" + strings.Replace(ret, "\x22", "\\\"", 0) + "\""
+		return "\"" + strings.Replace(ret, "\x22", "\\\"", -1) + "\""
 	}
 }

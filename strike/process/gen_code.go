@@ -27,7 +27,7 @@ func (g *gen_code) encode_string(str string) string {
 func (g *gen_code) make_num(w *Walker, ast p.IAst) p.IAst {
 	str := ast.Name()
 	a := make([]string, 0)
-	a = append(a, strings.Replace(make_num_e.ReplaceAllString(str, "."), "e+", "e", 0))
+	a = append(a, strings.Replace(make_num_e.ReplaceAllString(str, "."), "e+", "e", -1))
 	num, _ := parse_number(str)
 
 	switch num.(type) {
@@ -40,11 +40,11 @@ func (g *gen_code) make_num(w *Walker, ast p.IAst) p.IAst {
 		if float64(num_int)-num.(float64) == 0 {
 			a = append(a, g.make_int(num_int)...)
 		} else {
-			m := make_num_match1.FindAllString(str, 0)
+			m := make_num_match1.FindAllString(str, -1)
 			if m != nil && len(m) >= 3 {
 				a = append(a, m[1]+"e"+fmt.Sprint(len(m[2])))
 			} else {
-				m = make_num_match2.FindAllString(str, 0)
+				m = make_num_match2.FindAllString(str, -1)
 				if m != nil && len(m) >= 3 {
 					rs := []rune(str)
 					//ret := append(make([]rune, 0), m[2]
