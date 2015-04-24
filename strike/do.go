@@ -13,3 +13,7 @@ func StrikeJs(text string) string {
 	ast = process.Squeeze(ast, wk)
 	return process.GenCode(ast, wk)
 }
+
+func StrikeCss(text string) string {
+	return strike_css([]byte(text))
+}

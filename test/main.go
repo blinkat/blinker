@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/blinkat/blinks/strike"
+	"github.com/blinkat/blinks/phantom/parser"
 	"io/ioutil"
 )
 
@@ -11,13 +11,13 @@ var test string
 
 func main() {
 	jquery = "./jquery-1.11.2.js"
-	test = "./test.css"
+	test = "./test.html"
 
-	buffer, err := ioutil.ReadFile(jquery)
+	buffer, err := ioutil.ReadFile(test)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	//text := string(buffer)
-	strike.Test(buffer)
+	parser.Test(buffer)
 }
