@@ -1,14 +1,17 @@
 package parser
 
 type Tag struct {
-	Name      []byte
+	Name      string
 	Parent    *Tag
 	Children  []*Tag
-	Attribute []*Attribute
+	Attribute map[string]string
 	IsString  bool
+	IsDoctype bool
+	Index     int
 }
 
 func (t *Tag) Add(tag *Tag) {
+	tag.Index = len(t.Children)
 	t.Children = append(t.Children, tag)
 }
 
@@ -17,12 +20,13 @@ type Attribute struct {
 	Value []byte
 }
 
-func NewTag(name []byte) *Tag {
+func NewTag(name string) *Tag {
 	a := &Tag{
 		Name:      name,
 		Children:  nil,
 		Attribute: nil,
 		IsString:  false,
+		IsDoctype: false,
 	}
 	return a
 }

@@ -145,15 +145,22 @@ func (s *scanner) read_value() []byte {
 	return buffer.Bytes()
 }
 
+func (s *scanner) read_end_to(end byte) []byte {
+	var buffer bytes.Buffer
+	ch := s.peek()
+	for ch != 0 && ch != end {
+		buffer.WriteByte(ch)
+		s.next()
+		ch = s.peek()
+	}
+	//s.next()
+	return buffer.Bytes()
+}
+
 func (s *scanner) read_content() []byte {
 	var buffer bytes.Buffer
 	ch := s.peek()
 	for ch != 0 && ch != '<' {
-		if ch == '\n' || ch == '\r' {
-			s.next()
-			ch = s.peek()
-			continue
-		}
 		buffer.WriteByte(ch)
 		s.next()
 		ch = s.peek()

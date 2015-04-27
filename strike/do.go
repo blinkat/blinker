@@ -15,5 +15,5 @@ func StrikeJs(text string) string {
 }
 
 func StrikeCss(text string) string {
-	return strike_css([]byte(text))
+	return string(strike_css([]byte(text)))
 }
