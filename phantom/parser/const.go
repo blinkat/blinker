@@ -7,6 +7,7 @@ var name_read_end []byte
 var tag_comment *regexp.Regexp
 var tag_white *regexp.Regexp
 var can_single_tag []string
+var non_head_btml []string
 
 func init() {
 	name_read_end = []byte{'/', '>', '='}
@@ -16,10 +17,30 @@ func init() {
 		"input",
 		"img",
 	}
+
+	non_head_btml = []string{
+		"blink:content",
+		"blink:page",
+		"blink:master",
+		"blink:toplevel",
+	}
 }
 
 func CanSingle(s string) bool {
-	for _, v := range can_single_tag {
+	return member(can_single_tag, s)
+}
+
+// is blink html
+func IsBtml(s string) bool {
+	return member(non_head_btml, s)
+}
+
+func IsNonHeadBtml(s string) bool {
+	return member(non_head_btml, s)
+}
+
+func member(arr []string, s string) bool {
+	for _, v := range arr {
 		if v == s {
 			return true
 		}

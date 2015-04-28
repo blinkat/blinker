@@ -15,11 +15,6 @@ func (t *Tag) Add(tag *Tag) {
 	t.Children = append(t.Children, tag)
 }
 
-type Attribute struct {
-	Name  []byte
-	Value []byte
-}
-
 func NewTag(name string) *Tag {
 	a := &Tag{
 		Name:      name,
@@ -27,14 +22,6 @@ func NewTag(name string) *Tag {
 		Attribute: nil,
 		IsString:  false,
 		IsDoctype: false,
-	}
-	return a
-}
-
-func NewAttr(name, val []byte) *Attribute {
-	a := &Attribute{
-		Name:  name,
-		Value: val,
 	}
 	return a
 }

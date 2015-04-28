@@ -2,7 +2,6 @@ package html
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/blinkat/blinks/phantom/parser"
 	"github.com/blinkat/blinks/storm"
 	"github.com/blinkat/blinks/strike"
@@ -18,31 +17,34 @@ func HandleHtml(path string) string {
 	res := parser.Parse(buffer)
 	tag := get_html(res)
 	str := gen_code(tag)
-	fmt.Println(str)
 	return str
 }
 
+// generator codes
 func gen_code(tag *parser.Tag) string {
 	//fmt.Println(tag.Name)
 	if tag.IsString {
 		return tag.Name
 	}
+	if parser.IsBtml(tag.Name) {
+		return gen_btml(tag)
+	} else {
+		return gen_html(tag)
+	}
+}
 
+func gen_html(tag *parser.Tag) string {
 	var buffer bytes.Buffer
-	is_toplevel := tag.Name == "blink:toplevel"
-
-	if !is_toplevel {
-		if tag.IsDoctype {
-			return "<" + tag.Name + ">"
-		} else {
-			//write head
-			buffer.WriteString("<" + tag.Name)
-			for k, v := range tag.Attribute {
-				if k == "style" {
-					buffer.WriteString(" style=\"" + strike.StrikeCss(v) + "\"")
-				} else {
-					buffer.WriteString(" " + k + "=\"" + v + "\"")
-				}
+	if tag.IsDoctype {
+		return "<" + tag.Name + ">"
+	} else {
+		//write head
+		buffer.WriteString("<" + tag.Name)
+		for k, v := range tag.Attribute {
+			if k == "style" {
+				buffer.WriteString(" style=\"" + strike.StrikeCss(v) + "\"")
+			} else {
+				buffer.WriteString(" " + k + "=\"" + v + "\"")
 			}
 		}
 	}
@@ -53,68 +55,58 @@ func gen_code(tag *parser.Tag) string {
 		} else {
 			buffer.WriteString("></" + tag.Name + ">")
 		}
-
 	} else {
-		if !is_toplevel {
-			buffer.WriteRune('>')
-		}
+		buffer.WriteRune('>')
+		children := gen_children(tag)
 		if tag.Name == "script" {
-			var code bytes.Buffer
-			for _, v := range tag.Children {
-				code.WriteString(gen_code(v))
-			}
-			str_code := strike.StrikeJs(code.String())
-			buffer.WriteString(str_code)
-		} else {
-			for _, v := range tag.Children {
-				buffer.WriteString(gen_code(v))
-			}
+			children = strike.StrikeJs(children)
 		}
-		if !tag.IsDoctype && !is_toplevel {
-			buffer.WriteString("</" + tag.Name + ">")
-		}
+		buffer.WriteString(children)
+		buffer.WriteString("</" + tag.Name + ">")
 	}
 	return buffer.String()
 }
 
-func gen_code_doctype(tag *parser.Tag) string {
-	var buffer bytes.Buffer
-	buffer.WriteString("<" + tag.Name)
-	for k, _ := range tag.Attribute {
-		buffer.WriteString(" " + k)
+func gen_btml(tag *parser.Tag) string {
+	if parser.IsNonHeadBtml(tag.Name) {
+		return gen_children(tag)
 	}
-	//buffer.WriteRune('>')
-	//fmt.Println(tag.Attribute)
-	return buffer.String()
+	return ""
+}
+
+func gen_children(tag *parser.Tag) string {
+	var buf bytes.Buffer
+	for _, v := range tag.Children {
+		buf.WriteString(gen_code(v))
+	}
+	return buf.String()
 }
 
 //--------- handler ------------
 
 func get_html(html *parser.BlinkHtml) *parser.Tag {
 	if html.Master != nil {
-		buffer, err := ioutil.ReadFile(html.Master.Attribute["path"])
-		if err != nil {
-			storm.Error("\"" + html.Master.Attribute["path"] + "\" can not find master!")
-		}
+		if path, ok := html.Master.Attribute["path"]; ok {
+			buffer, err := ioutil.ReadFile(path)
+			if err != nil {
+				storm.Error("\"" + path + "\" can not find master!")
+			}
 
-		master := parser.Parse(buffer)
-		master = insert_content(html, master)
-		return get_html(master)
+			master := parser.Parse(buffer)
+			master = insert_content(html, master)
+			return get_html(master)
+		} else {
+			storm.Warring("blink:master not have \"path\"")
+		}
 	}
 	return html.TopLevel
 }
 
 func insert_content(html, master *parser.BlinkHtml) *parser.BlinkHtml {
 	for k, content := range master.Contents {
-		ret := make([]*parser.Tag, 0)
-		ret = append(ret, content.Parent.Children[:content.Index]...)
 		if page, ok := html.PageArea[k]; ok {
-			ret = append(ret, page.Children...)
-		} else {
-			ret = append(ret, content.Children...)
+			content.Children = page.Children
 		}
-		ret = append(ret, content.Parent.Children[content.Index+1:]...)
-		content.Parent.Children = ret
 	}
 
 	return master

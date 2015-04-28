@@ -71,9 +71,9 @@ func (p *Parser) statement() *Tag {
 			return nil
 		}
 		tag := NewTag(tok)
-		if p.current_tag.Name != "script" {
+		/*if p.current_tag.Name != "script" {
 			tag.Name = tag_white.ReplaceAllString(tag.Name, "")
-		}
+		}*/
 		tag.IsString = true
 		p.current_tag.Add(tag)
 		tag.Parent = p.current_tag
@@ -83,13 +83,6 @@ func (p *Parser) statement() *Tag {
 
 func (p *Parser) read_begin_tag() *Tag {
 	name := strings.ToLower(p.next())
-
-	// comments
-	if name == "!--" {
-		p.skip_comment()
-		return p.statement()
-	}
-
 	ret := NewTag(name)
 
 	if name == "!doctype" {
@@ -107,11 +100,6 @@ func (p *Parser) read_begin_tag() *Tag {
 		ret.Attribute = attr
 	}
 
-	/*if p.current_tok == "/>" {
-		p.current_tag.Add(ret)
-		return ret
-	}*/
-
 	if p.current_tag != nil {
 		ret.Parent = p.current_tag
 		p.current_tag.Add(ret)
@@ -120,22 +108,9 @@ func (p *Parser) read_begin_tag() *Tag {
 	if p.current_tok != "/>" && !ret.IsDoctype {
 		p.current_tag = ret
 	}
-	name = strings.ToLower(ret.Name)
 
-	if name == "blink:master" {
-		p.res.Master = ret
-	} else if name == "blink:page" {
-		if id, ok := ret.Attribute["id"]; ok && id != "" {
-			p.res.PageArea[id] = ret
-		} else {
-			storm.Error("blink page or content need id")
-		}
-	} else if name == "blink:content" {
-		if id, ok := ret.Attribute["id"]; ok && id != "" {
-			p.res.Contents[id] = ret
-		} else {
-			storm.Error("blink page or content need id")
-		}
+	if IsBtml(ret.Name) {
+		return p.handle_custom_tag(ret)
 	}
 	return ret
 }
@@ -173,4 +148,22 @@ func (p *Parser) read_attributes() map[string]string {
 		}
 	}
 	return attrs
+}
+
+func (p *Parser) handle_custom_tag(tag *Tag) *Tag {
+	switch tag.Name {
+	case "blink:master":
+		p.res.Master = tag
+	case "blink:page", "blink:content":
+		if id, ok := tag.Attribute["id"]; ok && id != "" {
+			if tag.Name == "blink:page" {
+				p.res.PageArea[id] = tag
+			} else {
+				p.res.Contents[id] = tag
+			}
+		} else {
+			storm.Warring(tag.Name + " need \"id\"")
+		}
+	}
+	return tag
 }
