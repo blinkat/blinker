@@ -1,19 +1,47 @@
 package strike
 
 import (
-	p "github.com/blinkat/blinks/strike/parser"
-	"github.com/blinkat/blinks/strike/process"
+	"github.com/blinkat/blinks/strike/css"
+	"github.com/blinkat/blinks/strike/html"
+	"github.com/blinkat/blinks/strike/js"
+	"io/ioutil"
+	//"github.com/blinkat/blinks/strike/json"
 )
 
-func StrikeJs(text string) string {
-	ast := p.ParseJs(text)
-	wk := process.GeneratorWalker(nil)
-	ast = process.AddScopeInfo(ast, wk)
-	ast = process.MangleAst(ast, wk)
-	ast = process.Squeeze(ast, wk)
-	return process.GenCode(ast, wk)
+// ---------- [ text ] -----------
+func StrikeJsText(text string) string {
+	return js.Strike(text)
 }
 
-func StrikeCss(text string) string {
-	return string(strike_css([]byte(text)))
+func StrikeCssText(text string) string {
+	return css.Strike(text)
+}
+
+func StrikeHtmlText(text string) string {
+	return html.Strike(text)
+}
+
+// -----------[ file ] ------------
+func StrikeJsPath(path string) string {
+	buf, err := ioutil.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return StrikeJsText(string(buf))
+}
+
+func StrikeCssPath(path string) string {
+	buf, err := ioutil.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return StrikeCssText(string(buf))
+}
+
+func StrikeHtmlPath(path string) string {
+	buf, err := ioutil.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return StrikeHtmlText(string(buf))
 }

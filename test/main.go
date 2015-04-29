@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/blinkat/blinks/phantom/json"
+	"fmt"
+	"github.com/blinkat/blinks/strike"
 )
 
 func main() {
-	json.Test("./test.json")
+	ret := strike.StrikeHtmlPath("./page.html")
+	fmt.Println(ret)
 }
