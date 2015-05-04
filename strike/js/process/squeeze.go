@@ -2,8 +2,8 @@ package process
 
 import (
 	"fmt"
-	p "github.com/blinkat/blinks/strike/js/parser"
-	"github.com/blinkat/blinks/strike/js/parser/adapter"
+	p "github.com/blinkat/blinker/strike/js/parser"
+	"github.com/blinkat/blinker/strike/js/parser/adapter"
 	"strconv"
 )
 

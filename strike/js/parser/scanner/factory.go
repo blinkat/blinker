@@ -1,7 +1,7 @@
 package scanner
 
 import (
-	"github.com/blinkat/blinks/strike/js/parser/adapter"
+	"github.com/blinkat/blinker/strike/js/parser/adapter"
 )
 
 type Tokenizer interface {

@@ -1,7 +1,7 @@
 package process
 
 import (
-	par "github.com/blinkat/blinks/strike/js/parser"
+	par "github.com/blinkat/blinker/strike/js/parser"
 )
 
 type prepare_ifs struct {

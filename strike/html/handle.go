@@ -2,9 +2,9 @@ package html
 
 import (
 	"bytes"
-	"github.com/blinkat/blinks/storm"
-	"github.com/blinkat/blinks/strike/css"
-	"github.com/blinkat/blinks/strike/js"
+	"github.com/blinkat/blinker/storm"
+	"github.com/blinkat/blinker/strike/css"
+	"github.com/blinkat/blinker/strike/js"
 	"io/ioutil"
 )
 

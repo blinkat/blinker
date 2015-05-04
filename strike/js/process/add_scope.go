@@ -1,7 +1,7 @@
 package process
 
 //add scope info
-import "github.com/blinkat/blinks/strike/js/parser"
+import "github.com/blinkat/blinker/strike/js/parser"
 
 type scopeWalker struct {
 	current     *parser.AstScope

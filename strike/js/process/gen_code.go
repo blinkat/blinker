@@ -3,8 +3,8 @@ package process
 import (
 	"bytes"
 	"fmt"
-	p "github.com/blinkat/blinks/strike/js/parser"
-	"github.com/blinkat/blinks/strike/js/parser/adapter"
+	p "github.com/blinkat/blinker/strike/js/parser"
+	"github.com/blinkat/blinker/strike/js/parser/adapter"
 	"regexp"
 	"strings"
 )

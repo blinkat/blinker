@@ -1,7 +1,7 @@
 package process
 
 import (
-	p "github.com/blinkat/blinks/strike/js/parser"
+	p "github.com/blinkat/blinker/strike/js/parser"
 )
 
 type Foots interface {

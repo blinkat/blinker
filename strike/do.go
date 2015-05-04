@@ -1,9 +1,9 @@
 package strike
 
 import (
-	"github.com/blinkat/blinks/strike/css"
-	"github.com/blinkat/blinks/strike/html"
-	"github.com/blinkat/blinks/strike/js"
+	"github.com/blinkat/blinker/strike/css"
+	"github.com/blinkat/blinker/strike/html"
+	"github.com/blinkat/blinker/strike/js"
 	"io/ioutil"
 	//"github.com/blinkat/blinks/strike/json"
 )

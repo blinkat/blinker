@@ -1,6 +1,6 @@
 package html
 
-import "github.com/blinkat/blinks/strike/js/parser/adapter"
+import "github.com/blinkat/blinker/strike/js/parser/adapter"
 import "regexp"
 
 var name_read_end []byte

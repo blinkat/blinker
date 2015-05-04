@@ -2,7 +2,7 @@ package strike
 
 import (
 	"fmt"
-	"github.com/blinkat/blinks/strike/json"
+	"github.com/blinkat/blinker/strike/json"
 	"reflect"
 	"strings"
 )

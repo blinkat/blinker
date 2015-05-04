@@ -2,7 +2,7 @@ package html
 
 import (
 	"bytes"
-	"github.com/blinkat/blinks/storm"
+	"github.com/blinkat/blinker/storm"
 	"strings"
 )
 

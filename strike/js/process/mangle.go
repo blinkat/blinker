@@ -1,6 +1,6 @@
 package process
 
-import "github.com/blinkat/blinks/strike/js/parser"
+import "github.com/blinkat/blinker/strike/js/parser"
 
 type astMangle struct {
 	Default
