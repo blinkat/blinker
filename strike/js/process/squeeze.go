@@ -278,7 +278,7 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 
 	var ret p.IAst
 	ret = p.NewIf(c, t, e)
-	if t.Type() == p.Type_If {
+	if t != nil && t.Type() == p.Type_If {
 		tif := t.(*p.If)
 		if empty(tif.Else) && empty(e) {
 			ret = best_of(ret, w.Walk(p.NewIf(p.NewBinary("&&", c, t.(*p.If).Cond), t.(*p.If).Body, nil)), wk)

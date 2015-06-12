@@ -1,5 +1,8 @@
 {
-	"comment": "readme",
+	"comment": {
+		"js": "readme",
+		"css": "readme"
+	},
 	"js": [
 		"md5",
 		"jsencrypt",
@@ -15,4 +18,5 @@
 	"css": [
 		"blink"
 	],
+	"name": "blink"
 }

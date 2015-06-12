@@ -8,27 +8,41 @@ import (
 	"io/ioutil"
 )
 
+type Combined struct {
+	Javascript string
+	Css        string
+	Name       string
+}
+
 // return js css
-func CombineForJson(path string) (string, string, error) {
+func CombineForJson(path string) (*Combined, error) {
 	json, err := j.ReadFile(path)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
+
 	prefix := get_base_path(path)
-
-	var comment string
-	if json.Get("comment") != nil {
-		comment = prefix + string(json.Get("comment").(j.JsonString))
-		//comment = prefix + comment
-	}
-
 	var js_ret bytes.Buffer
-	// add comment
-	com, err := ioutil.ReadFile(comment)
-	if err == nil {
-		js_ret.WriteString("/*")
-		js_ret.Write(com)
-		js_ret.WriteString("*/\n")
+	var css_ret bytes.Buffer
+
+	if json.Get("comment") != nil {
+		//comment = prefix + string(json.Get("comment").(j.JsonString))
+		cmt := json.Get("comment")
+		if cmt.(j.Json).Get("js") != nil {
+			js := cmt.(j.Json).Get("js")
+			t, e := ioutil.ReadFile(prefix + string(js.(j.JsonString)))
+			if e == nil {
+				js_ret.Write(t)
+			}
+		}
+
+		if cmt.(j.Json).Get("css") != nil {
+			css := cmt.(j.Json).Get("css")
+			t, e := ioutil.ReadFile(prefix + string(css.(j.JsonString)))
+			if e == nil {
+				css_ret.Write(t)
+			}
+		}
 	}
 
 	js := json.Get("js")
@@ -36,13 +50,16 @@ func CombineForJson(path string) (string, string, error) {
 		write(&js_ret, js.(j.JsonArray), prefix+"js/", ".js")
 	}
 
-	var css_ret bytes.Buffer
 	css := json.Get("css")
 	if css != nil {
 		write(&css_ret, css.(j.JsonArray), prefix+"css/", ".css")
 	}
 
-	return string(js_ret.Bytes()), string(css_ret.Bytes()), nil
+	return &Combined{
+		Javascript: string(js_ret.Bytes()),
+		Css:        string(css_ret.Bytes()),
+		Name:       string(json.Get("name").(j.JsonString)),
+	}, nil
 }
 
 func get_base_path(path string) string {
