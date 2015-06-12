@@ -66,9 +66,7 @@ func map_(w *Walker, arr []p.IAst) []p.IAst {
 	return append(top, ret...)
 }
 
-type map_fn func(ast p.IAst) p.IAst
-
-func map_custom(fn map_fn, arr []p.IAst) []p.IAst {
+func map_custom(fn func(ast p.IAst) p.IAst, arr []p.IAst) []p.IAst {
 	if arr == nil {
 		return nil
 	}
@@ -87,9 +85,7 @@ func map_custom(fn map_fn, arr []p.IAst) []p.IAst {
 	return append(top, ret...)
 }
 
-type map_def_fn func(ast *p.VarDef) *p.VarDef
-
-func map_def_custom(fn map_def_fn, arr []*p.VarDef) []*p.VarDef {
+func map_def_custom(fn func(ast *p.VarDef) *p.VarDef, arr []*p.VarDef) []*p.VarDef {
 	if arr == nil {
 		return nil
 	}

@@ -63,7 +63,7 @@ func (j *jsparser) throw(msg string) {
 	if msg == "" {
 		msg = "Unexpected token"
 	}
-	s := fmt.Sprint(msg, "\ntoken:", j.token, "\n", j.prev)
+	s := fmt.Sprint(msg, "\ntoken:", j.token.Value, "\n", j.prev)
 	panic(s)
 }
 
@@ -636,29 +636,33 @@ func (j *jsparser) parenthesised() IAst {
 }
 
 func (j *jsparser) switch_block_() []*Case {
-	j.in_func += 1
+	/*j.in_func += 1
 	loop := j.in_loop
 	j.in_directives = true
 	j.in_loop = 0
 	a := j.switch_block_loop()
 	j.in_func -= 1
 	j.in_loop = loop
-	return a
+	return a*/
+	j.in_loop += 1
+	ret := j.switch_block_loop()
+	j.in_loop -= 1
+	return ret
 }
 
 func (j *jsparser) switch_block_loop() []*Case {
 	j.expect("{")
 	a := make([]*Case, 0)
-	cur := make([]IAst, 0)
+	/*cur := make([]IAst, 0)
 	for !j.is_token(scanner.TokenPunc, "}") {
 		if !j.input.Eof() {
 			j.throw("")
 		}
 		if j.is_token(scanner.TokenKeyword, "case") {
 			j.next()
-			j.expect(":")
 			a = append(a, NewCase(j.expression(true, false), cur))
 			cur = make([]IAst, 0)
+			j.expect(":")
 		} else if j.is_token(scanner.TokenKeyword, "default") {
 			j.next()
 			j.expect(":")
@@ -669,6 +673,28 @@ func (j *jsparser) switch_block_loop() []*Case {
 				j.throw("")
 			}
 			cur = append(cur, j.statement())
+		}
+	}*/
+	var cur *Case
+	for !j.is_token(scanner.TokenPunc, "}") {
+		if !j.input.Eof() {
+			j.throw("")
+		}
+		if j.is_token(scanner.TokenKeyword, "case") {
+			j.next()
+			cur = NewCase(j.expression(true, false), make([]IAst, 0))
+			a = append(a, cur)
+			j.expect(":")
+		} else if j.is_token(scanner.TokenKeyword, "default") {
+			j.next()
+			j.expect(":")
+			cur = NewCase(nil, make([]IAst, 0))
+			a = append(a, cur)
+		} else {
+			if cur == nil {
+				j.throw("")
+			}
+			cur.Body = append(cur.Body, j.statement())
 		}
 	}
 	j.next()

@@ -19,9 +19,9 @@ func (a *astMangle) get_mangled(name string) string {
 		return name
 	}
 
-	if v, ok := a.scope.Names[name]; ok && (v == parser.Type_Defunc || v == parser.Type_Lambda) {
-		return name
-	}
+	// if v, ok := a.scope.Names[name]; ok && (v == parser.Type_Defunc || v == parser.Type_Lambda) {
+	// 	return name
+	// }
 
 	return a.scope.GetMangled(name)
 }

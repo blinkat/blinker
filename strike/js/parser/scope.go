@@ -88,7 +88,7 @@ func (a *AstScope) References(name string) bool {
 
 func (a *AstScope) Define(name string, t int) string {
 	if name != "" {
-		if _, ok := a.Names[name]; t == Type_Var || ok {
+		if _, ok := a.Names[name]; t == Type_Var || !ok {
 			a.Names[name] = t
 		}
 		return name

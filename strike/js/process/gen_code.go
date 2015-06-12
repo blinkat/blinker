@@ -115,7 +115,7 @@ func (g *gen_code) out_indent(i int) {
 }
 
 func (g *gen_code) add_spaces(a []string) string {
-	b := make([]string, 0)
+	/*b := make([]string, 0)
 	for k, v := range a {
 		b = append(b, v)
 		if k+1 < len(a) {
@@ -123,17 +123,30 @@ func (g *gen_code) add_spaces(a []string) string {
 			rv := ([]rune(v))
 			last := rv[len(rv)-1]
 			first := ([]rune(next))[0]
-			/*if (adapter.IsIdentifierChar(rv[len(rv)-1]) &&
-				(adapter.IsIdentifierChar(rv[0]) || rv[0] == '\\')) ||
-				(g.add_space1.MatchString(v) && g.add_space2.MatchString(v) ||
-					rv[len(rv)-1] == '/' && rv[0] == '/') {
-				b = append(b, " ")
-			}*/
+
 			if (adapter.IsIdentifierChar(last) &&
 				(adapter.IsIdentifierChar(first) || first == '\\')) ||
 				(g.add_space1.MatchString(v) && g.add_space2.MatchString(next) ||
 					last == '/' && first == '/') {
 				b = append(b, " ")
+			}
+		}
+	}
+	*/
+	b := make([]string, 0)
+	for k, v := range a {
+		b = append(b, v)
+		if k+1 < len(a) {
+			next := a[k+1]
+			cs_v := []rune(v)
+			cs_n := []rune(next)
+			if next != "" && ((adapter.IsIdentifierChar(cs_v[len(cs_v)-1]) &&
+				(adapter.IsIdentifierChar(cs_n[0]) || cs_n[0] == '\\')) ||
+				(g.add_space1.MatchString(v) &&
+					g.add_space2.MatchString(next) ||
+					cs_v[len(cs_v)-1] == '/' && cs_n[0] == '/')) {
+				b = append(b, " ")
+
 			}
 		}
 	}
@@ -193,6 +206,9 @@ func (g *gen_code) needs_parens(w *Walker, expr p.IAst) bool {
 				if g.needs_parens_ifs1(par, self) || g.needs_parens_ifs2(par, self) {
 					self = par
 					leng -= 1
+					if leng < 0 {
+						break
+					}
 					par = arr[leng]
 				} else {
 					return false
@@ -200,7 +216,6 @@ func (g *gen_code) needs_parens(w *Walker, expr p.IAst) bool {
 			}
 		}
 	}
-	//fmt.Println("dot-call")
 	return !member_int(dot_call_no_parens, expr.Type())
 }
 
@@ -241,6 +256,7 @@ func (g *gen_code) make_then(w *Walker, th p.IAst) p.IAst {
 		tp := b.Type()
 		if tp == p.Type_If {
 			ast := b.(*p.If)
+
 			if ast.Else == nil {
 				return w.Walk(p.NewBlock(th_arr))
 			}
@@ -265,7 +281,6 @@ func (g *gen_code) make_function(w *Walker, this p.IAst, name string, args, body
 	bufs.WriteRune('(')
 
 	for k, v := range args {
-		//fmt.Println(p.GetTypeName(v.Type()))
 		ret := v.Name()
 		if k == len(args)-1 {
 			bufs.WriteString(ret)
@@ -278,7 +293,6 @@ func (g *gen_code) make_function(w *Walker, this p.IAst, name string, args, body
 	out := g.add_spaces([]string{bufs.String(), g.make_block(w, body).Name()})
 
 	if !no_parens && g.needs_parens(w, this) {
-		//fmt.Println(this)
 		return p.NewString("(" + out + ")")
 	} else {
 		return p.NewString(out)
@@ -398,7 +412,7 @@ func (g *gen_code) Try(w *Walker, ast p.IAst) p.IAst {
 }
 
 func (g *gen_code) Throw(w *Walker, ast p.IAst) p.IAst {
-	return p.NewString(g.add_spaces([]string{"throw", w.Walk(ast.(*p.Return).Expr).Name()}))
+	return p.NewString(g.add_spaces([]string{"throw", w.Walk(ast.(*p.Return).Expr).Name()}) + ";")
 }
 
 func (g *gen_code) New(w *Walker, ast p.IAst) p.IAst {
@@ -516,6 +530,7 @@ func (g *gen_code) Defun(w *Walker, ast p.IAst) p.IAst {
 func (g *gen_code) If(w *Walker, ast p.IAst) p.IAst {
 	f := ast.(*p.If)
 	out := []string{"if", "(" + w.Walk(f.Cond).Name() + ")"}
+	//if f.Else != nil && f.Else.Type() == p.Type_Block && len(f.Else.(*p.Block).Statements) != 0 {
 	if f.Else != nil {
 		out = append(out, g.make_then(w, f.Body).Name(), "else", w.Walk(f.Else).Name())
 	} else {

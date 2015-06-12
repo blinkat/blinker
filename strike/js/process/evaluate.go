@@ -529,10 +529,7 @@ func parse_number(val string) (interface{}, error) {
 }
 
 //---------------[ when constant ]-------------
-type WhenCall func(p.IAst, interface{}) p.IAst
-type WhenNoCall func(p.IAst) p.IAst
-
-func WhenConstant(expr p.IAst, yes WhenCall, no WhenNoCall) p.IAst {
+func WhenConstant(expr p.IAst, yes func(p.IAst, interface{}) p.IAst, no func(p.IAst) p.IAst) p.IAst {
 	val, err := evaluate(expr)
 	var ast p.IAst
 	if err == nil {
@@ -580,10 +577,9 @@ func WhenConstant(expr p.IAst, yes WhenCall, no WhenNoCall) p.IAst {
 					}
 				}
 			}
-
-			if no != nil {
-				return no(expr)
-			}
+		}
+		if no != nil {
+			return no(expr)
 		}
 	}
 	return nil

@@ -29,7 +29,7 @@ func (s *squeeze) negate(c p.IAst, w *Walker) p.IAst {
 		return ret
 	case p.Type_Conditional:
 		ret := c.(*p.Conditional)
-		return best_of(not_c, p.NewConditional(ret.Expr, s.negate(ret.True, w), s.negate(ret.False, w)), w)
+		return best_of(not_c, p.NewConditional(ret.Expr, s.negate(ret.True, w), s.negate(ret.False, w)), GeneratorWalker(nil))
 
 	case p.Type_Binnary:
 		op := c.(*p.Binary)
@@ -43,9 +43,9 @@ func (s *squeeze) negate(c p.IAst, w *Walker) p.IAst {
 		case "!==":
 			return p.NewBinary("===", op.Left, op.Right)
 		case "&&":
-			return best_of(not_c, p.NewBinary("||", s.negate(op.Left, w), s.negate(op.Right, w)), w)
+			return best_of(not_c, p.NewBinary("||", s.negate(op.Left, w), s.negate(op.Right, w)), GeneratorWalker(nil))
 		case "||":
-			return best_of(not_c, p.NewBinary("&&", s.negate(op.Left, w), s.negate(op.Right, w)), w)
+			return best_of(not_c, p.NewBinary("&&", s.negate(op.Left, w), s.negate(op.Right, w)), GeneratorWalker(nil))
 		}
 		break
 	}
@@ -69,7 +69,7 @@ func (s *squeeze) make_conditional(c, t, e p.IAst, w *Walker) p.IAst {
 			}
 		} else {
 			if e != nil {
-				return best_of(p.NewConditional(c, t, e), p.NewConditional(s.negate(c, w), e, t), w)
+				return best_of(p.NewConditional(c, t, e), p.NewConditional(s.negate(c, w), e, t), GeneratorWalker(nil))
 			} else {
 				return p.NewBinary("&&", c, t)
 			}
@@ -102,12 +102,12 @@ func (s *squeeze) _lambda(w *Walker, ast p.IAst) p.IAst {
 // 4. transform consecutive statements using the comma operator
 // 5. if block_type == "lambda" and it detects constructs like if(foo) return ... - rewrite like if (!foo) { ... }
 func (s *squeeze) tighten(statements []p.IAst, w *Walker) []p.IAst {
-	statements = map_(w, statements)
-	statements = s.tighten_clear_empty(statements)
-	statements = s.tighten_each(statements)
-	statements = s.tighten_clear_dead_code(statements)
-	statements = s.tighten_make_seqs(statements)
-	return statements
+	ret := map_(w, statements)
+	ret = s.tighten_clear_empty(ret)
+	ret = s.tighten_each(ret)
+	ret = s.tighten_clear_dead_code(ret)
+	ret = s.tighten_make_seqs(ret)
+	return ret
 }
 
 func (s *squeeze) tighten_clear_empty(statements []p.IAst) []p.IAst {
@@ -123,6 +123,18 @@ func (s *squeeze) tighten_clear_empty(statements []p.IAst) []p.IAst {
 		}
 	}
 	return ret
+	/*ret := make([]p.IAst, 0)
+	for _, v := range statements {
+		if v.Type() == p.Type_Block {
+			b := v.(*p.Block)
+			if b.Statements != nil && len(b.Statements) > 0 {
+				ret = append(ret, b)
+			}
+		} else {
+			ret = append(ret, v)
+		}
+	}
+	return ret*/
 }
 
 func (s *squeeze) tighten_make_seqs(statements []p.IAst) []p.IAst {
@@ -180,6 +192,7 @@ func (s *squeeze) tighten_clear_dead_code(statements []p.IAst) []p.IAst {
 		}
 	}
 	return ret
+	return statements
 }
 
 func (s *squeeze) tighten_each(a []p.IAst) []p.IAst {
@@ -190,7 +203,7 @@ func (s *squeeze) tighten_each(a []p.IAst) []p.IAst {
 		if prev != nil && ((v.Type() == p.Type_Var && prev.Type() == p.Type_Var) ||
 			(v.Type() == p.Type_Const && prev.Type() == p.Type_Const)) {
 			c := v.(*p.Var)
-			pr := v.(*p.Var)
+			pr := prev.(*p.Var)
 			pr.Defs = append(pr.Defs, c.Defs...)
 		} else {
 			ret = append(ret, v)
@@ -215,6 +228,7 @@ func (s *squeeze) make_if(w *Walker, ast p.IAst) p.IAst {
 		return nil
 	}, func(nothing p.IAst) p.IAst {
 		return s.make_real_if(w, ast)
+		//return ast
 	})
 }
 
@@ -237,6 +251,7 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 	c := w.Walk(ifs.Cond)
 	t := w.Walk(ifs.Body)
 	e := w.Walk(ifs.Else)
+	wk := GeneratorWalker(nil)
 
 	if empty(e) && empty(t) {
 		return p.NewStat(c)
@@ -249,9 +264,9 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 	} else if empty(e) {
 		e = nil
 	} else {
-		a := GenCode(c, w)
+		a := GenCode(c, wk)
 		n := s.negate(c, w)
-		b := GenCode(n, w)
+		b := GenCode(n, wk)
 
 		if len(b) < len(a) {
 			tmp := t
@@ -266,29 +281,28 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 	if t.Type() == p.Type_If {
 		tif := t.(*p.If)
 		if empty(tif.Else) && empty(e) {
-			ret = best_of(ret, w.Walk(p.NewIf(p.NewBinary("&&", c, t.(*p.If).Cond), t.(*p.If).Body, nil)), w)
+			ret = best_of(ret, w.Walk(p.NewIf(p.NewBinary("&&", c, t.(*p.If).Cond), t.(*p.If).Body, nil)), wk)
 		}
 	} else if t.Type() == p.Type_Stat {
 		if e != nil {
 			if e.Type() == p.Type_Stat {
-				ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, e.(*p.Stat).Statement, w)), w)
+				ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, e.(*p.Stat).Statement, w)), wk)
 			} else if aborts(e) {
 				ret = s.abort_else(c, t, e, w)
 			}
 		} else {
-			ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, nil, w)), w)
+			ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, nil, w)), wk)
 		}
 	} else if e != nil && t.Type() == e.Type() && (t.Type() == p.Type_Return || t.Type() == p.Type_Thorw) &&
 		t.(*p.Return).Expr != nil && e.(*p.Return).Expr != nil {
 		cond := s.make_conditional(c, t.(*p.Return).Expr, e.(*p.Return).Expr, w)
 		if t.Type() == p.Type_Return {
-			ret = best_of(ret, p.NewReturn(cond), w)
+			ret = best_of(ret, p.NewReturn(cond), wk)
 		} else {
-			ret = best_of(ret, p.NewThrow(cond), w)
+			ret = best_of(ret, p.NewThrow(cond), wk)
 		}
 	} else if e != nil && aborts(t) {
-		arr := make([]p.IAst, 0)
-		arr = append(arr, p.NewIf(c, t, nil))
+		arr := []p.IAst{p.NewIf(c, t, nil)}
 		if e.Type() == p.Type_Block {
 			if e.(*p.Block).Statements != nil {
 				arr = append(arr, e.(*p.Block).Statements...)
@@ -300,7 +314,6 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 	} else if t != nil && aborts(e) {
 		ret = s.abort_else(c, t, e, w)
 	}
-
 	return ret
 }
 
@@ -366,7 +379,7 @@ func (s *squeeze) Function(w *Walker, ast p.IAst) p.IAst {
 	return s._lambda(w, ast)
 }
 
-func (s *squeeze) DeFun(w *Walker, ast p.IAst) p.IAst {
+func (s *squeeze) Defun(w *Walker, ast p.IAst) p.IAst {
 	return s._lambda(w, ast)
 }
 
@@ -374,7 +387,7 @@ func (s *squeeze) Binary(w *Walker, ast p.IAst) p.IAst {
 	b := ast.(*p.Binary)
 	return WhenConstant(p.NewBinary(b.Name(), w.Walk(b.Left), w.Walk(b.Right)),
 		func(c p.IAst, val interface{}) p.IAst {
-			return best_of(w.Walk(c), c, w)
+			return best_of(w.Walk(c), c, GeneratorWalker(nil))
 		}, func(this p.IAst) p.IAst {
 			if b.Name() != "==" && b.Name() != "!=" {
 				return nil
@@ -393,7 +406,6 @@ func (s *squeeze) Binary(w *Walker, ast p.IAst) p.IAst {
 					} else {
 						b.Left = p.NewNumber("1")
 					}
-					//b.Left = p.NewNumber(fmt.Sprint(+!(num.(float64))))
 					break
 				case int:
 					fv := num.(int)
@@ -402,7 +414,6 @@ func (s *squeeze) Binary(w *Walker, ast p.IAst) p.IAst {
 					} else {
 						b.Left = p.NewNumber("1")
 					}
-					//b.Left = p.NewNumber(fmt.Sprint(+!(num.(int))))
 					break
 				}
 			} else if r != nil && r.Type() == p.Type_Unary_Prefix && r.Name() == "!" && r.(*p.Unary).Expr.Type() == p.Type_Number {
@@ -416,7 +427,6 @@ func (s *squeeze) Binary(w *Walker, ast p.IAst) p.IAst {
 					} else {
 						b.Right = p.NewNumber("1")
 					}
-					//b.Right = p.NewNumber(fmt.Sprint(+!(num.(float64))))
 					break
 				case int:
 					fv := num.(int)
@@ -425,7 +435,6 @@ func (s *squeeze) Binary(w *Walker, ast p.IAst) p.IAst {
 					} else {
 						b.Right = p.NewNumber("1")
 					}
-					//b.Right = p.NewNumber(fmt.Sprint(+!(num.(int))))
 					break
 				}
 			}
@@ -459,7 +468,7 @@ func (s *squeeze) UnaryPrefix(w *Walker, ast p.IAst) p.IAst {
 	expr := w.Walk(a.Expr)
 	ret := p.NewUnaryPrefix(a.Name(), expr)
 	if a.Name() == "!" {
-		ret = best_of(ret, s.negate(expr, w), w).(*p.Unary)
+		ret = best_of(ret, s.negate(expr, w), GeneratorWalker(nil)).(*p.Unary)
 	}
 	return WhenConstant(ret, func(ref p.IAst, val interface{}) p.IAst {
 		return w.Walk(ref)

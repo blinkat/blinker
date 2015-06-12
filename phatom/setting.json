@@ -1,0 +1,18 @@
+{
+	"comment": "readme",
+	"js": [
+		"md5",
+		"jsencrypt",
+		"core",
+		"event",
+		"flex",
+		"nav",
+		"scroll",
+		"area",
+		"tab",
+		"pages",
+	],
+	"css": [
+		"blink"
+	],
+}

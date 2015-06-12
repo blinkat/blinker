@@ -106,7 +106,7 @@ func make_string(str string) string {
 			break
 		case '"':
 			dq += 1
-			rbuf.WriteString("\\\"")
+			rbuf.WriteString("\"")
 			break
 		case '\'':
 			sq += 1
