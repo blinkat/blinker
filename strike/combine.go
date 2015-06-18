@@ -31,17 +31,21 @@ func CombineForJson(path string) (*Combined, error) {
 		if cmt.(j.Json).Get("js") != nil {
 			js := cmt.(j.Json).Get("js")
 			t, e := ioutil.ReadFile(prefix + string(js.(j.JsonString)))
+			js_ret.WriteString("/*")
 			if e == nil {
 				js_ret.Write(t)
 			}
+			js_ret.WriteString("*/")
 		}
 
 		if cmt.(j.Json).Get("css") != nil {
 			css := cmt.(j.Json).Get("css")
 			t, e := ioutil.ReadFile(prefix + string(css.(j.JsonString)))
+			js_ret.WriteString("/*")
 			if e == nil {
 				css_ret.Write(t)
 			}
+			js_ret.WriteString("*/")
 		}
 	}
 

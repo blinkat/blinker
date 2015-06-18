@@ -114,7 +114,7 @@
 		},
 
 		strToRGB: function(str) {
-			if (/#^([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(str)) {
+			if (/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(str)) {
 				var sR = "";
 				var sG = "";
 				var sB = "";
@@ -588,4 +588,4 @@
 			return length;
 		}
 	}
-})()
+})();

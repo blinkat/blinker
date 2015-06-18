@@ -12,16 +12,17 @@ func test_strike_js() {
 	fmt.Println(js)
 }
 
-func test_combine() {
+func test_combine() *strike.Combined {
 	path := "../phatom/setting.json"
-	js, css, err := strike.CombineForJson(path)
+	ret, err := strike.CombineForJson(path)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(js)
-	fmt.Println(css)
+	return ret
 }
 
 func main() {
-	test_strike_js()
+	ret := test_combine()
+	s := strike.StrikeJsText(ret.Javascript)
+	fmt.Println(s)
 }

@@ -513,7 +513,6 @@ func (g *gen_code) Call(w *Walker, ast p.IAst) p.IAst {
 	for _, v := range c.List {
 		ret = append(ret, g.parenthesize(v, w, p.Type_Seq))
 	}
-
 	return p.NewString(f + "(" + strings.Join(ret, ",") + ")")
 }
 

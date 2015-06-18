@@ -283,7 +283,7 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 		if empty(tif.Else) && empty(e) {
 			ret = best_of(ret, w.Walk(p.NewIf(p.NewBinary("&&", c, t.(*p.If).Cond), t.(*p.If).Body, nil)), wk)
 		}
-	} else if t.Type() == p.Type_Stat {
+	} else if t != nil && t.Type() == p.Type_Stat {
 		if e != nil {
 			if e.Type() == p.Type_Stat {
 				ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, e.(*p.Stat).Statement, w)), wk)
@@ -293,7 +293,7 @@ func (s *squeeze) make_real_if(w *Walker, ast p.IAst) p.IAst {
 		} else {
 			ret = best_of(ret, p.NewStat(s.make_conditional(c, t.(*p.Stat).Statement, nil, w)), wk)
 		}
-	} else if e != nil && t.Type() == e.Type() && (t.Type() == p.Type_Return || t.Type() == p.Type_Thorw) &&
+	} else if e != nil && t != nil && t.Type() == e.Type() && (t.Type() == p.Type_Return || t.Type() == p.Type_Thorw) &&
 		t.(*p.Return).Expr != nil && e.(*p.Return).Expr != nil {
 		cond := s.make_conditional(c, t.(*p.Return).Expr, e.(*p.Return).Expr, w)
 		if t.Type() == p.Type_Return {
