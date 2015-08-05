@@ -76,11 +76,7 @@ func TextColor(color int, str string) string {
 }
 
 func IsWindows() bool {
-	if runtime.GOOS == "windows" {
-		return true
-	} else {
-		return false
-	}
+	return runtime.GOOS == "windows"
 }
 
 func RGBToInt(r, g, b byte) int {

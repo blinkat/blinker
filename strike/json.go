@@ -119,9 +119,10 @@ func conver_struct_fields(value reflect.Value, typeof reflect.Type, format int) 
 	field_len := value.NumField()
 	for i := 0; i < field_len; i++ {
 		field := value.Field(i)
-		if field.CanSet() {
+		name := typeof.Field(i).Name
+		if first := string(([]rune(name))[0]); first == strings.ToUpper(first) {
 			ret = append(ret, &json.JsonBlock{
-				Name:  handle_format(typeof.Field(i).Name, format),
+				Name:  handle_format(name, format),
 				Value: conver_startement(field.Interface(), format),
 			})
 		}

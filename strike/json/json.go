@@ -58,6 +58,10 @@ func (j JsonString) String() string {
 	return "\"" + string(j) + "\""
 }
 
+func (j JsonString) Value() string {
+	return string(j)
+}
+
 type JsonBool bool
 
 func (j JsonBool) String() string {
