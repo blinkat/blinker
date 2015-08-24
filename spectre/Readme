@@ -1,0 +1,17 @@
+# spectre package
+# last version 
+# the 'spectre' package is manage http/tcp/ucp net package
+# message format: 
+#	first 1 byte is sign this pack is or not be end.
+#	{
+#		packserial: pack serial
+#		packsign: sign pack.	
+#		handler: handler name, you pass handler object func name
+#		parame: {
+#			arg1,
+#			arg2,
+#			arg3,
+#			...	
+#		},
+#	}
+# 					

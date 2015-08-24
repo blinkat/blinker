@@ -1,25 +1,26 @@
-package invoker
+package ecdh
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"github.com/blinkat/blinker/invoker"
 	"io"
 )
 
-type AeadPart struct {
-	iv  []byte
-	cip []byte
-	tag []byte
-}
+// type aeadPart struct {
+// 	iv  []byte
+// 	cip []byte
+// 	tag []byte
+// }
 
-type aead_cont struct {
+type aeadCont struct {
 	key_bytes  int
 	auth_bytes int
 	get_aead   func(key []byte) (cipher.AEAD, error)
 }
 
-func (a *aead_cont) Encrypt(key, aad, pt []byte) (*AeadPart, error) {
+func (a *aeadCont) encrypt(key, aad, pt []byte) (*invoker.CipherPart, error) {
 	aead, err := a.get_aead(key)
 	if err != nil {
 		return nil, err
@@ -34,23 +35,23 @@ func (a *aead_cont) Encrypt(key, aad, pt []byte) (*AeadPart, error) {
 	cip := aead.Seal(nil, iv, pt, aad)
 	oft := len(cip) - a.auth_bytes
 
-	return &AeadPart{
-		iv:  iv,
-		cip: cip[:oft],
-		tag: cip[oft:],
+	return &invoker.CipherPart{
+		Iv:         iv,
+		Ciphertext: cip[:oft],
+		Tag:        cip[oft:],
 	}, nil
 }
 
-func (a *aead_cont) Decrypt(key, aad []byte, part *AeadPart) ([]byte, error) {
+func (a *aeadCont) decrypt(key, aad []byte, part *invoker.CipherPart) ([]byte, error) {
 	aead, err := a.get_aead(key)
 	if err != nil {
 		return nil, err
 	}
-	return aead.Open(nil, part.iv, append(part.cip, part.tag...), aad)
+	return aead.Open(nil, part.Iv, append(part.Ciphertext, part.Tag...), aad)
 }
 
-func new_aes_gcm(size int) *aead_cont {
-	return &aead_cont{
+func new_aes_gcm(size int) *aeadCont {
+	return &aeadCont{
 		key_bytes:  size,
 		auth_bytes: 16,
 		get_aead: func(key []byte) (cipher.AEAD, error) {
@@ -63,13 +64,13 @@ func new_aes_gcm(size int) *aead_cont {
 	}
 }
 
-func get_cont_cipher(alg EncAlgorithm) *aead_cont {
+func getContCipher(alg string) *aeadCont {
 	switch alg {
-	case A128GCM:
+	case ENC_A128GCM:
 		return new_aes_gcm(16)
-	case A192GCM:
+	case ENC_A192GCM:
 		return new_aes_gcm(24)
-	case A256GCM:
+	case ENC_A256GCM:
 		return new_aes_gcm(32)
 	}
 	return nil

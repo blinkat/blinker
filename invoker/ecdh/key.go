@@ -10,201 +10,270 @@ import (
 	"io"
 )
 
-const namespace = "blinker/invoker/ecdh"
-
-// encryption key algorithms
-type KeyAlgorithm int
-type CurveAlgorithm int
-
 const (
-	KEY_NONE = KeyAlgorithm(iota)
-	KEY_A128K
-	KEY_A192K
-	KEY_A256K
+	KEY_NONE  = "NONE"
+	KEY_A128K = "A128K"
+	KEY_A192K = "A192K"
+	KEY_A256K = "A256K"
+
+	ENC_A128GCM = "A128GCM"
+	ENC_A192GCM = "A192GCM"
+	ENC_A256GCM = "A256GCM"
 )
 
-const (
-	Curve_P224 = CurveAlgorithm(iota)
-	Curve_P256
-	Curve_P384
-	Curve_P521
-)
-
-type PublicKey struct {
+type publicKey struct {
 	key    *ecdsa.PublicKey
-	params *key_params
+	params keyParams
 }
 
-type PrivateKey struct {
+type privateKey struct {
 	key    *ecdsa.PrivateKey
-	pub    *PublicKey
-	params *key_params
+	puk    *publicKey
+	params keyParams
 }
 
-type key_params struct {
-	key_algor KeyAlgorithm
-	enc_algor invoker.EncAlgorithm
-	curve     CurveAlgorithm
+type keyParams struct {
+	key_algor string
+	enc_algor string
+	curve     string
+	is_comp   bool
 }
 
-// public
-func (p *PublicKey) GenKey() ([]byte, *ecdsa.PublicKey, error) {
-	pri, err := ecdsa.GenerateKey(p.key.Curve, rand.Reader)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	out := DeriveECDH(string(p.params.key_algor), []byte{}, []byte{}, pri, p.key, p.params.KeySize())
-	return out, &pri.PublicKey, nil
-}
-
-func (p *PublicKey) EncryptKey(cek []byte) ([]byte, error) {
-	kek, pub, err := p.GenKey()
-	if err != nil {
-		return nil, err
-	}
-
-	block, err := aes.NewCipher(kek)
-	if err != nil {
-		return nil, err
-	}
-
-	jek, err := key_wrap(block, cek)
-	if err != nil {
-		return nil, err
-	}
-
-	jpk := &json_puk{
-		X:     json_bytes(pub.X.Bytes()),
-		Y:     json_bytes(pub.Y.Bytes()),
-		Curve: int(p.params.curve),
-		Key:   jek,
-	}
-
-	bys, err := json.Marshal(jpk)
-	if err != nil {
-		return nil, err
-	}
-	return bys, nil
-}
-
-// private
-func (p *PrivateKey) GenKey() ([]byte, error) {
-	// ret, _, err := p.Public().GenKey()
-	// return ret, err
-	key := make([]byte, p.params.KeySize())
-	_, err := io.ReadFull(rand.Reader, key)
-	if err != nil {
-		return nil, err
-	}
-	return key, nil
-}
-
-func (p *PrivateKey) Algorithm() invoker.EncAlgorithm {
-	return p.params.enc_algor
-}
-
-func (p *PrivateKey) AuthData() []byte {
-	jpk := &json_puk{
-		X:     json_bytes(p.pub.key.X.Bytes()),
-		Y:     json_bytes(p.pub.key.Y.Bytes()),
-		Curve: int(p.params.curve),
-		Key:   json_bytes{},
-	}
-	j, _ := json.Marshal(jpk)
-	return j
-}
-
-func (p *PrivateKey) Public() *PublicKey {
-	return p.pub
-}
-
-func (p *PrivateKey) EncryptKey(cek []byte) ([]byte, error) {
-	return p.pub.EncryptKey(cek)
-}
-
-func (p *PrivateKey) DecryptKey(cek []byte) ([]byte, error) {
-	jpk := &json_puk{}
-	err := json.Unmarshal(cek, jpk)
-	if err != nil {
-		return nil, err
-	}
-
-	pub := &ecdsa.PublicKey{
-		X:     jpk.X.BigInt(),
-		Y:     jpk.Y.BigInt(),
-		Curve: GetCurve(CurveAlgorithm(jpk.Curve)),
-	}
-	if pub.Curve == nil {
-		return nil, err
-	}
-
-	apu := []byte{}
-	apv := []byte{}
-
-	var ksize int
-	switch p.params.key_algor {
-	case KEY_NONE:
-		return DeriveECDH(string(p.params.enc_algor), apu, apv, p.key, pub, p.params.KeySize()), nil
-	case KEY_A128K:
-		ksize = 16
-	case KEY_A192K:
-		ksize = 24
-	case KEY_A256K:
-		ksize = 32
-	default:
-		return nil, fmt.Errorf(namespace + ": key size error")
-	}
-
-	key := DeriveECDH(string(p.params.key_algor), apu, apv, p.key, pub, ksize)
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	return key_unwarp(block, []byte(jpk.Key))
-}
-
-// params
-func (p *key_params) KeySize() int {
-	switch p.enc_algor {
-	case invoker.A128GCM:
+func (k *keyParams) keySize() int {
+	switch k.enc_algor {
+	case ENC_A128GCM:
 		return 16
-	case invoker.A192GCM:
+	case ENC_A192GCM:
 		return 24
-	case invoker.A256GCM:
+	case ENC_A256GCM:
 		return 32
 	}
 	return -1
 }
 
-// generate key
-// k = KeyAlgorithm
-// e = EncAlgorithm
-// c = CurveAlgorithm
-func GenerateKey(k KeyAlgorithm, e invoker.EncAlgorithm, c CurveAlgorithm) (*PrivateKey, error) {
-	cur := GetCurve(c)
-	if cur == nil {
-		return nil, fmt.Errorf(namespace+": unknow curve #%d.", int(c))
+func NewPublicKey(c, k_algor, e_algor string) invoker.PublicKey {
+	pk, err := ecdsa.GenerateKey(getCurve(c), rand.Reader)
+	if err != nil {
+		return nil
 	}
-	key, err := ecdsa.GenerateKey(cur, rand.Reader)
+	return &publicKey{
+		key: &pk.PublicKey,
+		params: keyParams{
+			key_algor: k_algor,
+			enc_algor: e_algor,
+			curve:     c,
+			is_comp:   true,
+		},
+	}
+}
+
+// generate private key
+// opt 0 = key 1 = enc 2 = curve 3 = comp
+func GenerateKey(opt ...string) (invoker.PrivateKey, error) {
+	p := keyParams{
+		key_algor: KEY_A256K,
+		enc_algor: ENC_A256GCM,
+		curve:     CURVE_P521,
+		is_comp:   true,
+	}
+	leng := len(opt)
+	if leng >= 1 {
+		p.key_algor = opt[0]
+	}
+	if leng >= 2 {
+		p.enc_algor = opt[1]
+	}
+	if leng >= 3 {
+		p.curve = opt[2]
+	}
+	if leng >= 4 {
+		p.is_comp = opt[3] == "true"
+	}
+
+	ky, err := ecdsa.GenerateKey(getCurve(p.curve), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	return &privateKey{
+		params: p,
+		key:    ky,
+		puk: &publicKey{
+			params: p,
+			key:    &ky.PublicKey,
+		},
+	}, nil
+}
+
+// ======== public key ========
+func (p *publicKey) genKey() ([]byte, *ecdsa.PublicKey, error) {
+	pri, err := ecdsa.GenerateKey(p.key.Curve, rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	out := deriveECDH(p.params.key_algor, []byte{}, []byte{}, pri, p.key, p.params.keySize())
+	return out, &pri.PublicKey, nil
+}
+
+func (p *publicKey) encryptKey(cek []byte) (*jsonKey, []byte, error) {
+	if p.params.key_algor == KEY_NONE {
+		return &jsonKey{}, nil, nil
+	}
+
+	kek, pub, err := p.genKey()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	block, err := aes.NewCipher(kek)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	jek, err := key_wrap(block, cek)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &jsonKey{
+		Header: &jsonPublic{
+			X:      invoker.JsonBytes(pub.X.Bytes()),
+			Y:      invoker.JsonBytes(pub.Y.Bytes()),
+			Curve:  p.params.curve,
+			KeyAlg: p.params.key_algor,
+			EncAlg: p.params.enc_algor,
+			IsComp: p.params.is_comp,
+		},
+		Key: jek,
+	}, authData(pub), nil
+}
+
+func authData(p *ecdsa.PublicKey) []byte {
+	jpk := &jsonPublic{
+		X: invoker.JsonBytes(p.X.Bytes()),
+		Y: invoker.JsonBytes(p.Y.Bytes()),
+	}
+	j, _ := json.Marshal(jpk)
+	return j
+}
+
+// gen rand key
+func (p *publicKey) randGenKey() ([]byte, error) {
+	key := make([]byte, p.params.keySize())
+	_, err := io.ReadFull(rand.Reader, key)
+	return key, err
+}
+
+func (p *publicKey) GenKey() ([]byte, error) {
+	key, err := p.randGenKey()
+	if err != nil {
+		return nil, err
+	}
+	jk, _, err := p.encryptKey(key)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(jk)
+}
+
+func (p *publicKey) Encrypt(b []byte) ([]byte, error) {
+	cek, err := p.randGenKey()
+	if err != nil {
+		return nil, err
+	}
+	key, auth, err := p.encryptKey(cek)
+	if err != nil {
+		return nil, err
+	}
+	return p.encryptWithKey(b, cek, key, auth)
+}
+
+func (p *publicKey) encryptWithKey(plaintext, cek []byte, key *jsonKey, auth []byte) ([]byte, error) {
+	var err error
+	if p.params.is_comp {
+		plaintext, err = invoker.Deflate(plaintext)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ad := getContCipher(p.params.enc_algor)
+	if ad == nil {
+		return nil, fmt.Errorf(namespace + "get aead failed")
+	}
+
+	//auth := pub.authData()
+	part, err := ad.encrypt(cek, auth, plaintext)
+
+	kj, err := json.Marshal(key)
 	if err != nil {
 		return nil, err
 	}
 
-	params := &key_params{
-		key_algor: k,
-		enc_algor: e,
-		curve:     c,
+	j := &invoker.AsymmetricsJson{
+		Key:  invoker.JsonBytes(kj),
+		Part: part,
+		Type: "ecdh",
+	}
+	fmt.Println(cek)
+	return json.Marshal(j)
+}
+
+// ========= private key ==========
+func (p *privateKey) Public() invoker.PublicKey {
+	return p.puk
+}
+
+func (p *privateKey) decryptKey(encrypted []byte, pub *publicKey) ([]byte, error) {
+	size := 0
+	switch p.params.key_algor {
+	case KEY_NONE:
+		return deriveECDH(p.params.enc_algor, []byte{}, []byte{}, p.key, pub.key, p.params.keySize()), nil
+	case KEY_A128K:
+		size = 16
+	case KEY_A192K:
+		size = 24
+	case KEY_A256K:
+		size = 32
+	default:
+		return nil, fmt.Errorf(namespace+"unknow key. '%s'", p.params.key_algor)
 	}
 
-	ret := &PrivateKey{
-		key: key,
-		pub: &PublicKey{
-			key:    &key.PublicKey,
-			params: params,
-		},
-		params: params,
+	key := deriveECDH(p.params.key_algor, []byte{}, []byte{}, p.key, pub.key, size)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	return key_unwarp(block, encrypted)
+}
+
+func (p *privateKey) Decrypt(a *invoker.AsyEncrypted) ([]byte, error) {
+	var puk *publicKey
+	switch a.Public.(type) {
+	case *publicKey:
+		puk = a.Public.(*publicKey)
+	default:
+		return nil, fmt.Errorf(namespace + "unknow key.")
 	}
 
-	return ret, nil
+	cek, err := p.decryptKey(a.EncryptedKey, a.Public.(*publicKey))
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(cek)
+	auth := authData(puk.key)
+	ad := getContCipher(p.params.enc_algor)
+	if ad == nil {
+		return nil, fmt.Errorf(namespace + "unknow enc.")
+	}
+
+	plaintext, err := ad.decrypt(cek, auth, a.Part)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.params.is_comp {
+		return invoker.Inflate(plaintext)
+	}
+	return plaintext, err
 }

@@ -1,4 +1,4 @@
-package concat
+package ecdh
 
 import (
 	"crypto"
@@ -7,14 +7,14 @@ import (
 	"io"
 )
 
-type Concat struct {
+type concat struct {
 	z, info []byte
 	i       uint32
 	cache   []byte
 	hasher  hash.Hash
 }
 
-func NewConcat(hash crypto.Hash, z, alg, pt_u, pt_v, sup_pub, sup_pri []byte) io.Reader {
+func newConcat(hash crypto.Hash, z, alg, pt_u, pt_v, sup_pub, sup_pri []byte) io.Reader {
 	buf := make([]byte, len(alg)+len(pt_u)+len(pt_v)+len(sup_pub)+len(sup_pri))
 	n := 0
 	n += copy(buf, alg)
@@ -25,7 +25,7 @@ func NewConcat(hash crypto.Hash, z, alg, pt_u, pt_v, sup_pub, sup_pri []byte) io
 
 	hasher := hash.New()
 
-	return &Concat{
+	return &concat{
 		z:      z,
 		info:   buf,
 		hasher: hasher,
@@ -33,7 +33,7 @@ func NewConcat(hash crypto.Hash, z, alg, pt_u, pt_v, sup_pub, sup_pri []byte) io
 	}
 }
 
-func (c *Concat) Read(out []byte) (int, error) {
+func (c *concat) Read(out []byte) (int, error) {
 	copid := copy(out, c.cache)
 	c.cache = c.cache[copid:]
 
