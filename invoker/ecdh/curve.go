@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	CURVE_P224 = "p-224"
-	CURVE_P256 = "p-256"
-	CURVE_P384 = "p-384"
-	CURVE_P521 = "p-521"
+	CURVE_P224 = 224
+	CURVE_P256 = 256
+	CURVE_P384 = 384
+	CURVE_P521 = 521
 
 	namespace = "blinker/invoker/ecdh: "
 )
 
-func getCurve(c string) elliptic.Curve {
+func getCurve(c int) elliptic.Curve {
 	switch c {
 	case CURVE_P224:
 		return elliptic.P224()

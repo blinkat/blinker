@@ -35,7 +35,7 @@ type privateKey struct {
 type keyParams struct {
 	key_algor string
 	enc_algor string
-	curve     string
+	curve     int
 	is_comp   bool
 }
 
@@ -51,25 +51,9 @@ func (k *keyParams) keySize() int {
 	return -1
 }
 
-func NewPublicKey(c, k_algor, e_algor string) invoker.PublicKey {
-	pk, err := ecdsa.GenerateKey(getCurve(c), rand.Reader)
-	if err != nil {
-		return nil
-	}
-	return &publicKey{
-		key: &pk.PublicKey,
-		params: keyParams{
-			key_algor: k_algor,
-			enc_algor: e_algor,
-			curve:     c,
-			is_comp:   true,
-		},
-	}
-}
-
 // generate private key
-// opt 0 = key 1 = enc 2 = curve 3 = comp
-func GenerateKey(opt ...string) (invoker.PrivateKey, error) {
+// opt 0 = enc 1 = curve 2 = key 3 = comp
+func GenerateKey(opt ...int) (invoker.PrivateKey, error) {
 	p := keyParams{
 		key_algor: KEY_A256K,
 		enc_algor: ENC_A256GCM,
@@ -78,19 +62,41 @@ func GenerateKey(opt ...string) (invoker.PrivateKey, error) {
 	}
 	leng := len(opt)
 	if leng >= 1 {
-		p.key_algor = opt[0]
+		switch opt[0] {
+		case 128:
+			p.enc_algor = ENC_A128GCM
+		case 192:
+			p.enc_algor = ENC_A192GCM
+		case 256:
+			p.enc_algor = ENC_A256GCM
+		default:
+			return nil, fmt.Errorf(namespace+"unknow #%d encryption algorithm.", opt[0])
+		}
 	}
 	if leng >= 2 {
-		p.enc_algor = opt[1]
+		p.curve = opt[1]
 	}
 	if leng >= 3 {
-		p.curve = opt[2]
+		switch opt[2] {
+		case 0:
+			p.key_algor = KEY_NONE
+		case 128:
+			p.key_algor = KEY_A128K
+		case 192:
+			p.key_algor = KEY_A192K
+		case 256:
+			p.key_algor = KEY_A256K
+		}
 	}
 	if leng >= 4 {
-		p.is_comp = opt[3] == "true"
+		p.is_comp = opt[3] != 0
 	}
 
-	ky, err := ecdsa.GenerateKey(getCurve(p.curve), rand.Reader)
+	curve := getCurve(p.curve)
+	if curve == nil {
+		return nil, fmt.Errorf(namespace+"unknow curve #%d.", p.curve)
+	}
+	ky, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -164,18 +170,6 @@ func (p *publicKey) randGenKey() ([]byte, error) {
 	return key, err
 }
 
-func (p *publicKey) GenKey() ([]byte, error) {
-	key, err := p.randGenKey()
-	if err != nil {
-		return nil, err
-	}
-	jk, _, err := p.encryptKey(key)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(jk)
-}
-
 func (p *publicKey) Encrypt(b []byte) ([]byte, error) {
 	cek, err := p.randGenKey()
 	if err != nil {
@@ -186,6 +180,28 @@ func (p *publicKey) Encrypt(b []byte) ([]byte, error) {
 		return nil, err
 	}
 	return p.encryptWithKey(b, cek, key, auth)
+}
+
+func (p *publicKey) Bytes() ([]byte, error) {
+	jpk := &jsonPublic{
+		X:      invoker.JsonBytes(p.key.X.Bytes()),
+		Y:      invoker.JsonBytes(p.key.Y.Bytes()),
+		Curve:  p.params.curve,
+		KeyAlg: p.params.key_algor,
+		EncAlg: p.params.enc_algor,
+		IsComp: p.params.is_comp,
+	}
+
+	js, err := json.Marshal(jpk)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &invoker.AsymmetricsPublic{
+		Key:  invoker.JsonBytes(js),
+		Type: "ecdh",
+	}
+	return json.Marshal(ret)
 }
 
 func (p *publicKey) encryptWithKey(plaintext, cek []byte, key *jsonKey, auth []byte) ([]byte, error) {
@@ -215,7 +231,6 @@ func (p *publicKey) encryptWithKey(plaintext, cek []byte, key *jsonKey, auth []b
 		Part: part,
 		Type: "ecdh",
 	}
-	fmt.Println(cek)
 	return json.Marshal(j)
 }
 
@@ -260,7 +275,6 @@ func (p *privateKey) Decrypt(a *invoker.AsyEncrypted) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(cek)
 	auth := authData(puk.key)
 	ad := getContCipher(p.params.enc_algor)
 	if ad == nil {

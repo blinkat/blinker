@@ -10,10 +10,11 @@ import (
 type jsonPublic struct {
 	X      invoker.JsonBytes `json:"x,omitempty"`
 	Y      invoker.JsonBytes `json:"y,omitempty"`
-	Curve  string            `json:"curve,omitempty"`
+	Curve  int               `json:"curve,omitempty"`
 	KeyAlg string            `json:"key-alg,omitempty"`
 	EncAlg string            `json:"enc-alg,omitempty"`
 	IsComp bool              `json:"is-comp,omitempty"`
+	//Type   string            `json:"type,omitempty"`
 }
 
 type jsonKey struct {
@@ -22,8 +23,30 @@ type jsonKey struct {
 }
 
 func ParsePublic(b []byte) (invoker.PublicKey, error) {
-	k, _, err := parsePublic(b)
-	return k, err
+	jpk := new(jsonPublic)
+	err := json.Unmarshal(b, jpk)
+	if err != nil {
+		return nil, err
+	}
+
+	pub := &ecdsa.PublicKey{
+		X:     jpk.X.BigInt(),
+		Y:     jpk.Y.BigInt(),
+		Curve: getCurve(jpk.Curve),
+	}
+	if pub.Curve == nil {
+		return nil, fmt.Errorf(namespace+"unknow curve '%s'", jpk.Curve)
+	}
+
+	return &publicKey{
+		key: pub,
+		params: keyParams{
+			key_algor: jpk.KeyAlg,
+			enc_algor: jpk.EncAlg,
+			curve:     jpk.Curve,
+			is_comp:   jpk.IsComp,
+		},
+	}, nil
 }
 
 func parsePublic(b []byte) (invoker.PublicKey, []byte, error) {
@@ -53,13 +76,7 @@ func parsePublic(b []byte) (invoker.PublicKey, []byte, error) {
 	}, []byte(key.Key), nil
 }
 
-func ParseEncrypted(b []byte) (*invoker.AsyEncrypted, error) {
-	jpk := new(invoker.AsymmetricsJson)
-	err := json.Unmarshal(b, jpk)
-	if err != nil {
-		return nil, err
-	}
-
+func ParseEncrypted(jpk *invoker.AsymmetricsJson) (*invoker.AsyEncrypted, error) {
 	key, code, err := parsePublic(jpk.Key)
 	if err != nil {
 		return nil, err
@@ -71,4 +88,11 @@ func ParseEncrypted(b []byte) (*invoker.AsyEncrypted, error) {
 		Part:         jpk.Part,
 		Type:         jpk.Type,
 	}, nil
+}
+
+func init() {
+	err := invoker.RegisterAsymmetric("ecdh", GenerateKey, ParseEncrypted, ParsePublic)
+	if err != nil {
+		panic(err)
+	}
 }

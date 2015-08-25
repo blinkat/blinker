@@ -1,45 +1,34 @@
 package invoker
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 type PublicKey interface {
 	Encrypt(b []byte) ([]byte, error)
-	GenKey() ([]byte, error)
-	//EncryptWithKey(b, k []byte) ([]byte, error)
-	//Bytes() ([]byte, error)
-	//Encode() ([]byte, error)
+	Bytes() ([]byte, error)
 }
 
 type PrivateKey interface {
 	Public() PublicKey
 	Decrypt(a *AsyEncrypted) ([]byte, error)
-	//Encode() ([]byte, error)
 }
 
-// asymmetric encrypted
-type CipherPart struct {
-	Iv         JsonBytes `json:"iv,omitempty"`
-	Ciphertext JsonBytes `json:"ciphertext,omitempty"`
-	Tag        JsonBytes `json:"tag,omitempty"`
-}
+// ========== asymmetric encryption maps ============
+type GenAsymmetric func(opt ...int) (PrivateKey, error)               //gen asymmetric key
+type EncryptedParse func(enc *AsymmetricsJson) (*AsyEncrypted, error) //encrypted parse func
+type PublicParse func(enc []byte) (PublicKey, error)                  //asymmetric public key parser
 
-type AsyEncrypted struct {
-	Public       PublicKey
-	EncryptedKey []byte
-	Part         *CipherPart
-	Type         string
+type algorithm struct {
+	gen    GenAsymmetric
+	enc    EncryptedParse
+	pub    PublicParse
+	isAsym bool // is asymmetric algorithm
 }
-
-func (a *AsyEncrypted) Decrypt(prk PrivateKey) ([]byte, error) {
-	return prk.Decrypt(a)
-}
-
-type GenAsymmetric func(opt ...string) (PrivateKey, error)
 
 var (
-	Asymmetrics = make(map[string]GenAsymmetric)
+	asymmetrics = make(map[string]*algorithm)
 )
 
 const (
@@ -47,16 +36,51 @@ const (
 )
 
 // register crypto key
-func RegisterAsymmetric(name string, fn GenAsymmetric) error {
-	if fn != nil && name != "" {
-		Asymmetrics[name] = fn
+func RegisterAsymmetric(name string, gen GenAsymmetric, enc EncryptedParse, pub PublicParse) error {
+	if gen != nil && name != "" {
+		asymmetrics[name] = &algorithm{
+			gen:    gen,
+			enc:    enc,
+			pub:    pub,
+			isAsym: true,
+		}
+		return nil
 	}
-	return fmt.Errorf(namespace + "params failed.")
+	return fmt.Errorf(namespace + "name and gen can't be null.")
 }
 
-func AsymmetricKey(name string, opt ...string) (PrivateKey, error) {
-	if fn, ok := Asymmetrics[name]; ok {
-		return fn(opt...)
+// generate asymmetric key
+func GenAsymKey(name string, opt ...int) (PrivateKey, error) {
+	if alg, ok := asymmetrics[name]; ok {
+		if alg.isAsym {
+			return alg.gen(opt...)
+		}
 	}
-	return nil, fmt.Errorf(namespace+"can not found '%s' asymmetric.", name)
+	return nil, fmt.Errorf(namespace+"unknow '%s' algorithm.", name)
+}
+
+func ParseEncrypted(b []byte) (*AsyEncrypted, error) {
+	jpk := new(AsymmetricsJson)
+	err := json.Unmarshal(b, jpk)
+	if err != nil {
+		return nil, err
+	}
+
+	if alg, ok := asymmetrics[jpk.Type]; ok && alg.isAsym {
+		return alg.enc(jpk)
+	}
+	return nil, fmt.Errorf(namespace + "parse key failed.")
+}
+
+func ParsePublic(b []byte) (PublicKey, error) {
+	jpk := new(AsymmetricsPublic)
+	err := json.Unmarshal(b, jpk)
+	if err != nil {
+		return nil, err
+	}
+
+	if alg, ok := asymmetrics[jpk.Type]; ok && alg.isAsym {
+		return alg.pub([]byte(jpk.Key))
+	}
+	return nil, fmt.Errorf(namespace + "parse key failed.")
 }
