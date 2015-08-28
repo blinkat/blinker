@@ -2,29 +2,25 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>test page</title>
-	<link rel="stylesheet" href="../css/blink.css">
-	<link rel="stylesheet" href="./test.css">
+	<title>test</title>
+	<script src="../js/blink.js"></script>
+	<script src="../js/crypto/sjcl.js"></script>
+	<script src="../js/crypto/bitArray.js"></script>
+	<script src="../js/crypto/codecBase64.js"></script>
+	<script src="../js/crypto/codecBytes.js"></script>
+	<script src="../js/crypto/codecString.js"></script>
+	<script src="../js/crypto/sha256.js"></script>
+	<script src="../js/crypto/bn.js"></script>
+	<script src="../js/crypto/random.js"></script>
+	<script src="../js/crypto/curve.js"></script>
+	<script src="../js/crypto/ecdh.js"></script>
+	<script>
+	var plaintext = "what fuck"
+	var key = blink.crypto.generateKey(sjcl.ecc.curves["c521"])
+	</script>
 </head>
 <body>
-	<textarea id="test" rows="15" cols="65">-----BEGIN PRIVATE KEY-----
-MIICXgIBAAKBgQDBR1lgHTuayhnJz2lCCX7ynwhdBQYyTTPE3R6+RMQNk8bEhM8K
-B/t2i8Sdjt9pX5VxyYvvlMrKHVLzuepThC4fEDfFqSKbHkmpmU7RRpb6jNfSuL/O
-6hnBdTMeole584QzhJb8VGYq2DnVM9wpCAfbujRYgH0a4W2T4GeQGb2CiwIDAQAB
-AoGAGAGQrEt1N8iaY2KLpFQhnGj8VPFmz6CfKXh9dQx9fWI5cfc87/YF2beKeDdi
-sGfa3AM4ik1k0q3Ju9P/stfcEm/p00UXhPI6kaz5KrgijCkvTeN3I4UJpiYczBpv
-brqq7OMfGwBhYThrBYCVOWJeImqWPvlcwhKYpaixDwWbrSECQQD9ll/ksTjjt4FU
-ZrQpSozG7PNIM70JBZqa0W9rzZoQZ6SYmneqJA3OKuLyr4wn8iscZpFRhWzp8LHm
-vNG3rNE/AkEAwx4W7Pz0uqYpiqKuv4nvWqDOftsabY8VH3plpSGMowcvwPaqK1DI
-EZlDqJ7m25I0rqPWiw95JtQNldLBsh0vtQJBAIHZPCUIMk84KbskE+CI0ekSb8hq
-5cL24aGg2GLlFpyL1ZZmkhvG9mK5Rxhpl2Tk9fpG8uZBYfGwVAgIa4KXtVUCQQCn
-xx3rlvBR90PNZGpjZZaeFZy61Gj7QIfnU3ZH8nteTHWxtelJ6eK/z0ywmELnF+eZ
-LGT1ms6QptMvu9S29gXpAkEAgmEP+XSDg9HZ2VMiwzhi7g4iCJmQj6CwNR2s/dv1
-pJcG8ucUV9cjaHW/Pz1kbuPSl6HhYkO5kG3buJm2YauZhg==
------END PRIVATE KEY-----</textarea>
 
-	<script src="./jquery.min.js"></script>
-	<script src="./bootstrap.min.js"></script>
-	<script src="./blink.min.js"></script>
 </body>
 </html>
+

@@ -1,0 +1,3 @@
+var blink = {
+		crypto: {},
+	} // namesapce
