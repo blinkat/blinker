@@ -4,19 +4,18 @@
 	<meta charset="UTF-8">
 	<title>test</title>
 	<script src="../js/blink.js"></script>
-	<script src="../js/crypto/sjcl.js"></script>
-	<script src="../js/crypto/bitArray.js"></script>
-	<script src="../js/crypto/codecBase64.js"></script>
-	<script src="../js/crypto/codecBytes.js"></script>
-	<script src="../js/crypto/codecString.js"></script>
-	<script src="../js/crypto/sha256.js"></script>
-	<script src="../js/crypto/bn.js"></script>
-	<script src="../js/crypto/random.js"></script>
-	<script src="../js/crypto/curve.js"></script>
-	<script src="../js/crypto/ecdh.js"></script>
+	<script src="../js/bits.js"></script>
+	<script src="../js/crypto/aes.js"></script>
+	<script src="../js/bn.js"></script>
 	<script>
-	var plaintext = "what fuck"
-	var key = blink.crypto.generateKey(sjcl.ecc.curves["c521"])
+	var key = [12,14,16,48,20,66,100,156,220,64,98,33,246,240,178,155]
+	var plaintext = [227,149,87,148,169,82,255,15,33,5,9,249,78,18,69,26]
+	var aes = blink.crypto.aes(key)
+	var cipher = aes.encrypt(plaintext)
+	var last = aes.decrypt(cipher)
+
+	console.log(cipher)
+	console.log(last)
 	</script>
 </head>
 <body>

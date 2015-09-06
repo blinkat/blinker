@@ -58,7 +58,7 @@ func GenerateKey(opt ...int) (invoker.PrivateKey, error) {
 		key_algor: KEY_A256K,
 		enc_algor: ENC_A256GCM,
 		curve:     CURVE_P521,
-		is_comp:   true,
+		is_comp:   false,
 	}
 	leng := len(opt)
 	if leng >= 1 {
